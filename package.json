@@ -55,7 +55,13 @@
   },
   "devDependencies": {
     "@types/typescript": "^2.0.0",
+    "@typescript-eslint/eslint-plugin": "^5.57.1",
     "capture-console": "^1.0.1",
+    "eslint": "^8.38.0",
+    "eslint-config-standard-with-typescript": "^34.0.1",
+    "eslint-plugin-import": "^2.27.5",
+    "eslint-plugin-n": "^15.7.0",
+    "eslint-plugin-promise": "^6.1.1",
     "faker": "^5.1.0",
     "mock-argv": "^1.1.10",
     "mock-fs": "^4.13.0",
@@ -64,6 +70,6 @@
     "mockdate": "^3.0.2",
     "qunit": "^2.13.0",
     "strip-ansi": "^6.0.0",
-    "typescript": "^4.9.3"
+    "typescript": "^5.0.4"
   }
 }
