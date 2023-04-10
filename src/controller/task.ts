@@ -1,4 +1,4 @@
-const kanbn = require('../main')
+import {Kanbn} from '../main'
 const utility = require('../utility')
 const parseTask = require('../parse-task')
 const marked = require('marked')
@@ -8,8 +8,8 @@ const MarkedTerminalRenderer = require('marked-terminal')
  * Show task information
  * @param {string} taskId
  */
-function showTask (taskId, json = false) {
-  kanbn
+function showTask (taskId: string, json = false) {
+  new Kanbn()
     .getTask(taskId)
     .then((task) => {
       if (json) {
@@ -26,9 +26,9 @@ function showTask (taskId, json = false) {
     })
 }
 
-module.exports = async (args) => {
+module.exports = async (args: any) => {
   // Make sure kanbn has been initialised
-  if (!(await kanbn.initialised())) {
+  if (!(await new Kanbn().initialised())) {
     utility.error('Kanbn has not been initialised in this folder\nTry running: {b}kanbn init{b}')
     return
   }
@@ -42,7 +42,7 @@ module.exports = async (args) => {
 
   // Make sure the task exists
   try {
-    await kanbn.taskExists(taskId)
+    await new Kanbn().taskExists(taskId)
   } catch (error) {
     utility.error(error)
     return
