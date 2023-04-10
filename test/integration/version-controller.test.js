@@ -1,21 +1,22 @@
-const mockArgv = require('mock-argv');
-const captureConsole = require('capture-console');
-const kanbn = require('../../index');
+const mockArgv = require('mock-argv')
+const captureConsole = require('capture-console')
+const kanbn = require('../../index')
+const QUnit = require('qunit')
 
 QUnit.module('version controller tests', {
-  before() {
-    require('../qunit-contains');
+  before () {
+    require('../qunit-contains')
   }
-});
+})
 
 QUnit.test('Get kanbn version', async assert => {
-  const output = [];
+  const output = []
   captureConsole.startIntercept(process.stdout, s => {
-    output.push(s);
-  });
+    output.push(s)
+  })
 
-  await mockArgv(['version'], kanbn);
+  await mockArgv(['version'], kanbn)
 
-  captureConsole.stopIntercept(process.stdout);
-  assert.contains(output, /v\d+\.\d+\.\d+/);
-});
+  captureConsole.stopIntercept(process.stdout)
+  assert.contains(output, /v\d+\.\d+\.\d+/)
+})

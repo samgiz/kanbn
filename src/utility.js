@@ -1,8 +1,9 @@
+/* eslint-disable no-useless-escape */
 module.exports = (() => {
   const tags = {
     b: 'bold',
     d: 'dim'
-  };
+  }
 
   return {
 
@@ -11,12 +12,12 @@ module.exports = (() => {
      * @param {Error|string} error
      * @param {boolean} dontExit
      */
-    error(error, dontExit = false) {
+    error (error, dontExit = false) {
       const message = error instanceof Error
         ? (process.env.DEBUG === 'true' ? error : this.replaceTags(error.message))
-        : this.replaceTags(error);
-      console.error(message);
-      !dontExit && process.env.KANBN_ENV !== 'test' && process.exit(1);
+        : this.replaceTags(error)
+      console.error(message)
+      !dontExit && process.env.KANBN_ENV !== 'test' && process.exit(1)
     },
 
     /**
@@ -26,15 +27,15 @@ module.exports = (() => {
      * @param {string} s The string to convert
      * @return {string} The converted string
      */
-    paramCase(s) {
+    paramCase (s) {
       return s
         .replace(
           /([A-Z]+(.))/g,
-          (_, separator, letter, offset) => (offset ? "-" + separator : separator).toLowerCase()
+          (_, separator, letter, offset) => (offset ? '-' + separator : separator).toLowerCase()
         )
         .split(/[\s!?.,@:;|\\/"'`£$%\^&*{}[\]()<>~#+\-=_¬]+/g)
         .join('-')
-        .replace(/(^-|-$)/g, '');
+        .replace(/(^-|-$)/g, '')
     },
 
     /**
@@ -42,8 +43,8 @@ module.exports = (() => {
      * @param {string} name The task name
      * @return {string} The task id
      */
-     getTaskId(name) {
-      return this.paramCase(name);
+    getTaskId (name) {
+      return this.paramCase(name)
     },
 
     /**
@@ -52,11 +53,11 @@ module.exports = (() => {
      * @param {string|string[]} arg An argument that might be a string or an array of strings
      * @return {string} The argument value as a string
      */
-    strArg(arg, all = false) {
+    strArg (arg, all = false) {
       if (Array.isArray(arg)) {
-        return all ? arg.join(',') : arg.pop();
+        return all ? arg.join(',') : arg.pop()
       }
-      return arg;
+      return arg
     },
 
     /**
@@ -64,19 +65,19 @@ module.exports = (() => {
      * @param {string|string[]} arg An argument that might be a string or an array of strings
      * @return {string[]} The argument value as an array
      */
-    arrayArg(arg) {
+    arrayArg (arg) {
       if (Array.isArray(arg)) {
-        return arg;
+        return arg
       }
-      return [arg];
+      return [arg]
     },
 
     /**
      * Remove escape characters ('/' and '\') from the beginning of a string
      * @param {string} s The string to trim
      */
-    trimLeftEscapeCharacters(s) {
-      return s.replace(/^[\\\/]+/, '');
+    trimLeftEscapeCharacters (s) {
+      return s.replace(/^[\\\/]+/, '')
     },
 
     /**
@@ -85,11 +86,11 @@ module.exports = (() => {
      * @param {Date} b
      * @return {boolean} True if the dates are the same
      */
-    compareDates(a, b) {
-      const aDate = new Date(a), bDate = new Date(b);
-      aDate.setHours(0, 0, 0, 0);
-      bDate.setHours(0, 0, 0, 0);
-      return aDate.getTime() == bDate.getTime();
+    compareDates (a, b) {
+      const aDate = new Date(a); const bDate = new Date(b)
+      aDate.setHours(0, 0, 0, 0)
+      bDate.setHours(0, 0, 0, 0)
+      return aDate.getTime() === bDate.getTime()
     },
 
     /**
@@ -98,16 +99,16 @@ module.exports = (() => {
      * @param {string} type
      * @return {string|number}
      */
-    coerceUndefined(a, type) {
+    coerceUndefined (a, type) {
       if (a === undefined) {
         switch (type) {
           case 'string':
-            return '';
+            return ''
           default:
-            return 0;
+            return 0
         }
       }
-      return a;
+      return a
     },
 
     /**
@@ -115,8 +116,8 @@ module.exports = (() => {
      * @param {string} s The string to wrap
      * @return {string} The updated string
      */
-    bold(s) {
-      return `\x1b[1m${s}\x1b[0m`;
+    bold (s) {
+      return `\x1b[1m${s}\x1b[0m`
     },
 
     /**
@@ -124,8 +125,8 @@ module.exports = (() => {
      * @param {string} s The string to wrap
      * @return {string} The updated string
      */
-    dim(s) {
-      return `\x1b[2m${s}\x1b[0m`;
+    dim (s) {
+      return `\x1b[2m${s}\x1b[0m`
     },
 
     /**
@@ -133,12 +134,12 @@ module.exports = (() => {
      * @param {string} s The string in which to replace tags
      * @return {string} The updated string
      */
-    replaceTags(s) {
-      for (tag in tags) {
-        const r = new RegExp(`\{${tag}\}([^{]+)\{${tag}\}`, 'g');
-        s = s.replace(r, (m, s) => this[tags[tag]](s));
+    replaceTags (s) {
+      for (const tag in tags) {
+        const r = new RegExp(`\{${tag}\}([^{]+)\{${tag}\}`, 'g')
+        s = s.replace(r, (m, s) => this[tags[tag]](s))
       }
-      return s;
+      return s
     },
 
     /**
@@ -149,4 +150,4 @@ module.exports = (() => {
      */
     zip: (a, b) => a.map((k, i) => [k, b[i]])
   }
-})();
+})()

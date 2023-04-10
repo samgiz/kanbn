@@ -1,6 +1,6 @@
-const kanbn = require('../main');
-const utility = require('../utility');
-const inquirer = require('inquirer');
+const kanbn = require('../main')
+const utility = require('../utility')
+const inquirer = require('inquirer')
 
 /**
  * Start a new sprint interactively
@@ -8,7 +8,7 @@ const inquirer = require('inquirer');
  * @param {?string} [description=null] The sprint description
  * @return {Promise<any>}
  */
-async function interactive(name = null, description = null) {
+async function interactive (name = null, description = null) {
   return await inquirer.prompt([
     {
       type: 'input',
@@ -17,9 +17,9 @@ async function interactive(name = null, description = null) {
       default: name || '',
       validate: async value => {
         if (!value) {
-          return 'Sprint name cannot be empty';
+          return 'Sprint name cannot be empty'
         }
-        return true;
+        return true
       }
     },
     {
@@ -35,7 +35,7 @@ async function interactive(name = null, description = null) {
       default: description || '',
       when: answers => answers.setDescription
     }
-  ]);
+  ])
 }
 
 /**
@@ -43,50 +43,49 @@ async function interactive(name = null, description = null) {
  * @param {string} name
  * @param {string} description
  */
-function startSprint(name, description) {
+function startSprint (name, description) {
   kanbn
-  .sprint(name, description, new Date())
-  .then(sprint => {
-    console.log(`Started new sprint "${sprint.name}" at ${sprint.start.toISOString()}`);
-  })
-  .catch(error => {
-    utility.error(error);
-  });
+    .sprint(name, description, new Date())
+    .then(sprint => {
+      console.log(`Started new sprint "${sprint.name}" at ${sprint.start.toISOString()}`)
+    })
+    .catch(error => {
+      utility.error(error)
+    })
 }
 
 module.exports = async args => {
-
   // Make sure kanbn has been initialised
   if (!await kanbn.initialised()) {
-    utility.error('Kanbn has not been initialised in this folder\nTry running: {b}kanbn init{b}');
-    return;
+    utility.error('Kanbn has not been initialised in this folder\nTry running: {b}kanbn init{b}')
+    return
   }
 
   // Get sprint settings from arguments
   // Name
-  let name = '';
+  let name = ''
   if (args.name) {
-    name = utility.strArg(args.name);
+    name = utility.strArg(args.name)
   }
 
   // Description
-  let description = '';
+  let description = ''
   if (args.description) {
-    description = utility.strArg(args.description);
+    description = utility.strArg(args.description)
   }
 
   // Start sprint interactively
   if (args.interactive) {
     interactive(name, description)
-    .then(answers => {
-      startSprint(answers.name, answers.description || '');
-    })
-    .catch(error => {
-      utility.error(error);
-    });
+      .then(answers => {
+        startSprint(answers.name, answers.description || '')
+      })
+      .catch(error => {
+        utility.error(error)
+      })
 
   // Otherwise start sprint non-interactively
   } else {
-    startSprint(name, description);
+    startSprint(name, description)
   }
-};
+}

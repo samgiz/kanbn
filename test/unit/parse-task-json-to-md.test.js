@@ -1,6 +1,7 @@
-const parseTask = require('../../src/parse-task');
+const QUnit = require('qunit')
+const parseTask = require('../../src/parse-task')
 
-QUnit.module('Task JSON to markdown conversion tests');
+QUnit.module('Task JSON to markdown conversion tests')
 
 const CASE_1 = `---
 tags:
@@ -47,7 +48,7 @@ Even more data!
 - [requires another-task](another-task.md)
 - [duplicates some-other-task](some-other-task.md)
 - [blocks this-task](this-task.md)
-`;
+`
 
 const CASE_2 = `---
 tags:
@@ -59,23 +60,23 @@ tags:
 # Task Name
 
 This is a *task* description
-`;
+`
 
 const CASE_3 = `
 # Task Name
 
 This is a *task* description
-`;
+`
 
 const CASE_4 = `
 # Task Name
-`;
+`
 
-const CASE_5 = `
-Some text...
-`;
+// const CASE_5 = `
+// Some text...
+// `
 
-const CASE_6 = ``;
+// const CASE_6 = ''
 
 const validCases = [
   {
@@ -107,7 +108,7 @@ const validCases = [
         '\n' +
         'Even more data!',
       metadata: {
-        tags: [ 'tag1', 'tag2', 'tag3' ]
+        tags: ['tag1', 'tag2', 'tag3']
       },
       subTasks: [
         { text: 'this is a sub-task', completed: false },
@@ -126,7 +127,7 @@ const validCases = [
       name: 'Task Name',
       description: 'This is a *task* description',
       metadata: {
-        tags: [ 'tag1', 'tag2', 'tag3' ]
+        tags: ['tag1', 'tag2', 'tag3']
       },
       subTasks: [],
       relations: []
@@ -153,10 +154,10 @@ const validCases = [
     },
     expected: CASE_4
   }
-];
+]
 
 QUnit.test('Test json to task conversion with valid json', assert => {
   validCases.forEach(validCase => {
-    assert.equal(parseTask.json2md(validCase.data), validCase.expected.trimStart());
-  });
-});
+    assert.equal(parseTask.json2md(validCase.data), validCase.expected.trimStart())
+  })
+})

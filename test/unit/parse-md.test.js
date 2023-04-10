@@ -1,6 +1,7 @@
-const parseMarkdown = require('../../src/parse-markdown.js');
+const QUnit = require('qunit')
+const parseMarkdown = require('../../src/parse-markdown.js')
 
-QUnit.module('General markdown to JSON conversion tests');
+QUnit.module('General markdown to JSON conversion tests')
 
 const invalidCases = [
   {
@@ -27,15 +28,15 @@ const invalidCases = [
     md: '\n',
     error: /data is an empty string/
   }
-];
+]
 
 const validCases = [
   {
-    md: `#`,
+    md: '#',
     json: {}
   },
   {
-    md: `#  `,
+    md: '#  ',
     json: {}
   },
   {
@@ -43,7 +44,7 @@ const validCases = [
 # Title
 `,
     json: {
-      'Title': {
+      Title: {
         heading: '# Title',
         content: ''
       }
@@ -78,16 +79,16 @@ Content 3
       }
     }
   }
-];
+]
 
 QUnit.test('Test markdown to json conversion with valid markdown', assert => {
   validCases.forEach((validCase, i) => {
-    assert.deepEqual(parseMarkdown(validCase.md), validCase.json, `Failed on valid case ${i + 1}`);
-  });
-});
+    assert.deepEqual(parseMarkdown(validCase.md), validCase.json, `Failed on valid case ${i + 1}`)
+  })
+})
 
 QUnit.test('Test markdown to json conversion with invalid markdown', assert => {
   invalidCases.forEach((invalidCase, i) => {
-    assert.throws(() => { parseMarkdown(invalidCase.md); }, invalidCase.error, `Failed on invalid case ${i + 1}`);
-  });
-});
+    assert.throws(() => { parseMarkdown(invalidCase.md) }, invalidCase.error, `Failed on invalid case ${i + 1}`)
+  })
+})

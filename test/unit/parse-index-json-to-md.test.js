@@ -1,6 +1,7 @@
-const parseIndex = require('../../src/parse-index');
+const QUnit = require('qunit')
+const parseIndex = require('../../src/parse-index')
 
-QUnit.module('Index JSON to markdown conversion tests');
+QUnit.module('Index JSON to markdown conversion tests')
 
 const CASE_1 = `---
 option1: a
@@ -18,7 +19,7 @@ Project description
 ## Column2
 
 - [task-id-3](tasks/task-id-3.md)
-`;
+`
 
 const CASE_2 = `---
 option1: a
@@ -34,7 +35,7 @@ option1: a
 ## Column2
 
 - [task-id-3](tasks/task-id-3.md)
-`;
+`
 
 const CASE_3 = `
 # Project name
@@ -47,7 +48,7 @@ const CASE_3 = `
 ## Column2
 
 - [task-id-3](tasks/task-id-3.md)
-`;
+`
 
 const CASE_4 = `
 # Project name
@@ -57,11 +58,11 @@ const CASE_4 = `
 ## Column2
 
 - [task-id-3](tasks/task-id-3.md)
-`;
+`
 
 const CASE_5 = `
 # Project name
-`;
+`
 
 const validCases = [
   {
@@ -69,7 +70,7 @@ const validCases = [
       name: 'Project name',
       description: 'Project description',
       options: { option1: 'a' },
-      columns: { Column1: [ 'task-id-1', 'task-id-2' ], Column2: [ 'task-id-3' ] }
+      columns: { Column1: ['task-id-1', 'task-id-2'], Column2: ['task-id-3'] }
     },
     expected: CASE_1
   },
@@ -78,7 +79,7 @@ const validCases = [
       name: 'Project name',
       description: '',
       options: { option1: 'a' },
-      columns: { Column1: [ 'task-id-1', 'task-id-2' ], Column2: [ 'task-id-3' ] }
+      columns: { Column1: ['task-id-1', 'task-id-2'], Column2: ['task-id-3'] }
     },
     expected: CASE_2
   },
@@ -87,7 +88,7 @@ const validCases = [
       name: 'Project name',
       description: '',
       options: {},
-      columns: { Column1: [ 'task-id-1', 'task-id-2' ], Column2: [ 'task-id-3' ] }
+      columns: { Column1: ['task-id-1', 'task-id-2'], Column2: ['task-id-3'] }
     },
     expected: CASE_3
   },
@@ -96,7 +97,7 @@ const validCases = [
       name: 'Project name',
       description: '',
       options: {},
-      columns: { Column1: [], Column2: [ 'task-id-3' ] }
+      columns: { Column1: [], Column2: ['task-id-3'] }
     },
     expected: CASE_4
   },
@@ -109,10 +110,10 @@ const validCases = [
     },
     expected: CASE_5
   }
-];
+]
 
 QUnit.test('Test json to index conversion with valid json', assert => {
   validCases.forEach(validCase => {
-    assert.equal(parseIndex.json2md(validCase.data), validCase.expected.trimStart());
-  });
-});
+    assert.equal(parseIndex.json2md(validCase.data), validCase.expected.trimStart())
+  })
+})

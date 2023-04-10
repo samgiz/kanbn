@@ -1,108 +1,109 @@
-const mockFileSystem = require('mock-fs');
-const kanbn = require('../../src/main');
-const context = require('../context');
+const QUnit = require('qunit')
+const mockFileSystem = require('mock-fs')
+const kanbn = require('../../src/main')
+const context = require('../context')
 
 QUnit.module('initialise tests', {
-  beforeEach() {
-    mockFileSystem();
+  beforeEach () {
+    mockFileSystem()
   },
-  afterEach() {
-    mockFileSystem.restore();
+  afterEach () {
+    mockFileSystem.restore()
   }
-});
+})
 
 QUnit.test('Initialise with default settings should create folders and index', async assert => {
-  const BASE_PATH = await kanbn.getMainFolder();
+  const BASE_PATH = await kanbn.getMainFolder()
 
   // Kanbn shouldn't be currently initialised in our mock filesystem
-  assert.equal(await kanbn.initialised(), false);
+  assert.equal(await kanbn.initialised(), false)
 
   // Initialise kanbn and check that the main folder, index, and tasks folder exists
-  await kanbn.initialise();
-  context.kanbnFolderExists(assert, BASE_PATH);
-  context.indexExists(assert, BASE_PATH);
-  context.tasksFolderExists(assert, BASE_PATH);
+  await kanbn.initialise()
+  context.kanbnFolderExists(assert, BASE_PATH)
+  context.indexExists(assert, BASE_PATH)
+  context.tasksFolderExists(assert, BASE_PATH)
 
   // Kanbn should now be initialised
-  assert.equal(await kanbn.initialised(), true);
+  assert.equal(await kanbn.initialised(), true)
 
   // Check for default name & columns
-  context.indexHasName(assert, BASE_PATH, 'Project Name');
-  context.indexHasColumns(assert, BASE_PATH, ['Backlog', 'Todo', 'In Progress', 'Done']);
-});
+  context.indexHasName(assert, BASE_PATH, 'Project Name')
+  context.indexHasColumns(assert, BASE_PATH, ['Backlog', 'Todo', 'In Progress', 'Done'])
+})
 
 QUnit.test('Initialise with custom settings should create folders and index with custom settings', async assert => {
-  const BASE_PATH = await kanbn.getMainFolder();
+  const BASE_PATH = await kanbn.getMainFolder()
 
   // Kanbn shouldn't be currently initialised in our mock filesystem
-  assert.equal(await kanbn.initialised(), false);
+  assert.equal(await kanbn.initialised(), false)
 
   // Initialise kanbn and check that the main folder, index, and tasks folder exists
-  const CUSTOM_NAME = 'Custom Project Name';
-  const CUSTOM_DESCRIPTION = 'Custom project description...';
+  const CUSTOM_NAME = 'Custom Project Name'
+  const CUSTOM_DESCRIPTION = 'Custom project description...'
   const CUSTOM_COLUMNS = [
     'Column 1',
     'Column 2',
     'Column 3'
-  ];
+  ]
   await kanbn.initialise({
     name: CUSTOM_NAME,
     description: CUSTOM_DESCRIPTION,
     columns: CUSTOM_COLUMNS
-  });
-  context.kanbnFolderExists(assert, BASE_PATH);
-  context.indexExists(assert, BASE_PATH);
-  context.tasksFolderExists(assert, BASE_PATH);
+  })
+  context.kanbnFolderExists(assert, BASE_PATH)
+  context.indexExists(assert, BASE_PATH)
+  context.tasksFolderExists(assert, BASE_PATH)
 
   // Kanbn should now be initialised
-  assert.equal(await kanbn.initialised(), true);
+  assert.equal(await kanbn.initialised(), true)
 
   // Check for custom name, description & columns
-  context.indexHasName(assert, BASE_PATH, CUSTOM_NAME);
-  context.indexHasDescription(assert, BASE_PATH, CUSTOM_DESCRIPTION);
-  context.indexHasColumns(assert, BASE_PATH, CUSTOM_COLUMNS);
-});
+  context.indexHasName(assert, BASE_PATH, CUSTOM_NAME)
+  context.indexHasDescription(assert, BASE_PATH, CUSTOM_DESCRIPTION)
+  context.indexHasColumns(assert, BASE_PATH, CUSTOM_COLUMNS)
+})
 
 QUnit.test('Reinitialise with additional settings should add settings to index', async assert => {
-  const BASE_PATH = await kanbn.getMainFolder();
+  const BASE_PATH = await kanbn.getMainFolder()
 
   // Kanbn shouldn't be currently initialised in our mock filesystem
-  assert.equal(await kanbn.initialised(), false);
+  assert.equal(await kanbn.initialised(), false)
 
   // Initialise kanbn and check that the main folder, index, and tasks folder exists
-  await kanbn.initialise();
-  context.kanbnFolderExists(assert, BASE_PATH);
-  context.indexExists(assert, BASE_PATH);
-  context.tasksFolderExists(assert, BASE_PATH);
+  await kanbn.initialise()
+  context.kanbnFolderExists(assert, BASE_PATH)
+  context.indexExists(assert, BASE_PATH)
+  context.tasksFolderExists(assert, BASE_PATH)
 
   // Kanbn should now be initialised
-  assert.equal(await kanbn.initialised(), true);
+  assert.equal(await kanbn.initialised(), true)
 
   // Reinitialise kanbn with additional settings
-  const CUSTOM_NAME = 'Custom Project Name';
-  const CUSTOM_DESCRIPTION = 'Custom project description...';
+  const CUSTOM_NAME = 'Custom Project Name'
+  const CUSTOM_DESCRIPTION = 'Custom project description...'
   const CUSTOM_COLUMNS = [
     'Column 1',
     'Column 2',
     'Column 3'
-  ];
+  ]
   await kanbn.initialise({
     name: CUSTOM_NAME,
     description: CUSTOM_DESCRIPTION,
     columns: CUSTOM_COLUMNS
-  });
+  })
 
   // Kanbn should still be initialised
-  assert.equal(await kanbn.initialised(), true);
+  assert.equal(await kanbn.initialised(), true)
 
   // Check for custom name, description & columns
-  context.indexHasName(assert, BASE_PATH, CUSTOM_NAME);
-  context.indexHasDescription(assert, BASE_PATH, CUSTOM_DESCRIPTION);
+  context.indexHasName(assert, BASE_PATH, CUSTOM_NAME)
+  context.indexHasDescription(assert, BASE_PATH, CUSTOM_DESCRIPTION)
   context.indexHasColumns(assert, BASE_PATH, [
     'Backlog',
     'Todo',
     'In Progress',
     'Done',
     ...CUSTOM_COLUMNS
-  ]);
-});
+  ])
+})

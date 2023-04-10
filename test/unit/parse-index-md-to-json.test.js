@@ -1,13 +1,14 @@
-const parseIndex = require('../../src/parse-index');
+const QUnit = require('qunit')
+const parseIndex = require('../../src/parse-index')
 
-QUnit.module('Index markdown to JSON conversion tests');
+QUnit.module('Index markdown to JSON conversion tests')
 
-const TEST_NAME = 'Test Name';
-const TEST_DESCRIPTION = 'Test description...';
-const TEST_COLUMN_1 = 'Column 1';
-const TEST_COLUMN_2 = 'Column 2';
-const TEST_TASK_1 = 'Task-1';
-const TEST_TASK_2 = 'Task-2';
+const TEST_NAME = 'Test Name'
+const TEST_DESCRIPTION = 'Test description...'
+const TEST_COLUMN_1 = 'Column 1'
+const TEST_COLUMN_2 = 'Column 2'
+const TEST_TASK_1 = 'Task-1'
+const TEST_TASK_2 = 'Task-2'
 
 const invalidCases = [
   {
@@ -74,7 +75,7 @@ Invalid options
 `,
     error: /invalid options content/
   }
-];
+]
 
 const validCases = [
   {
@@ -288,16 +289,16 @@ anotherValidOption: test3
       }
     }
   }
-];
+]
 
 QUnit.test('Test index to json conversion with valid markdown', assert => {
   validCases.forEach((validCase, i) => {
-    assert.deepEqual(parseIndex.md2json(validCase.md), validCase.json, `Failed on valid case ${i + 1}`);
-  });
-});
+    assert.deepEqual(parseIndex.md2json(validCase.md), validCase.json, `Failed on valid case ${i + 1}`)
+  })
+})
 
 QUnit.test('Test index to json conversion with invalid markdown', assert => {
   invalidCases.forEach((invalidCase, i) => {
-    assert.throws(() => { parseIndex.md2json(invalidCase.md); }, invalidCase.error, `Failed on invalid case ${i + 1}`);
-  });
-});
+    assert.throws(() => { parseIndex.md2json(invalidCase.md) }, invalidCase.error, `Failed on invalid case ${i + 1}`)
+  })
+})

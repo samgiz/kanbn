@@ -1,27 +1,27 @@
-module.exports = function parseMarkdown(markdown) {
+module.exports = function parseMarkdown (markdown) {
   if (!markdown) {
-    throw new Error('data is null, undefined or empty');
+    throw new Error('data is null, undefined or empty')
   }
   if (typeof markdown !== 'string') {
-    throw new Error('data is not a string');
+    throw new Error('data is not a string')
   }
-  markdown = markdown.trim();
+  markdown = markdown.trim()
   if (markdown === '') {
-    throw new Error('data is an empty string');
+    throw new Error('data is an empty string')
   }
   const headings = [...markdown.matchAll(/^#{1,6} (?<title>.+)/gm)].map(({ 0: heading, 1: title, index }) => ({
     heading,
     title,
     index
-  }));
+  }))
   if (headings.length > 0 && headings[0].index > 0) {
     headings.unshift({
       heading: '',
       title: 'raw',
       index: 0
-    });
+    })
   }
-  const parsed = {};
+  const parsed = {}
   for (let i = 0; i < headings.length; i++) {
     parsed[headings[i].title] = {
       heading: headings[i].heading,
@@ -31,7 +31,7 @@ module.exports = function parseMarkdown(markdown) {
           ? headings[i + 1].index
           : undefined
       ).trim()
-    };
+    }
   }
-  return parsed;
-};
+  return parsed
+}

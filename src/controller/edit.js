@@ -1,13 +1,13 @@
-const kanbn = require('../main');
-const utility = require('../utility');
-const inquirer = require('inquirer');
-const fuzzy = require('fuzzy');
-const chrono = require('chrono-node');
-const getGitUsername = require('git-user-name');
+const kanbn = require('../main')
+const utility = require('../utility')
+const inquirer = require('inquirer')
+const fuzzy = require('fuzzy')
+const chrono = require('chrono-node')
+const getGitUsername = require('git-user-name')
 
-inquirer.registerPrompt('datepicker', require('inquirer-datepicker'));
-inquirer.registerPrompt('recursive', require('inquirer-recursive'));
-inquirer.registerPrompt('autocomplete', require('inquirer-autocomplete-prompt'));
+inquirer.registerPrompt('datepicker', require('inquirer-datepicker'))
+inquirer.registerPrompt('recursive', require('inquirer-recursive'))
+inquirer.registerPrompt('autocomplete', require('inquirer-autocomplete-prompt'))
 
 /**
  * Update a task interactively
@@ -17,17 +17,17 @@ inquirer.registerPrompt('autocomplete', require('inquirer-autocomplete-prompt'))
  * @param {string[]} columnNames
  * @return {Promise<any>}
  */
-async function interactive(taskData, taskIds, columnName, columnNames) {
+async function interactive (taskData, taskIds, columnName, columnNames) {
   const dueDateExists = (
     'metadata' in taskData &&
     'due' in taskData.metadata &&
     taskData.metadata.due != null
-  );
+  )
   const assignedExists = (
     'metadata' in taskData &&
     'assigned' in taskData.metadata &&
     taskData.metadata.assigned != null
-  );
+  )
   return await inquirer.prompt([
     {
       type: 'input',
@@ -36,9 +36,9 @@ async function interactive(taskData, taskIds, columnName, columnNames) {
       default: taskData.name || '',
       validate: async value => {
         if (!value) {
-          return 'Task name cannot be empty';
+          return 'Task name cannot be empty'
         }
-        return true;
+        return true
       }
     },
     {
@@ -153,9 +153,9 @@ async function interactive(taskData, taskIds, columnName, columnNames) {
           message: 'Sub-task text:',
           validate: value => {
             if (!value) {
-              return 'Sub-task text cannot be empty';
+              return 'Sub-task text cannot be empty'
             }
-            return true;
+            return true
           }
         },
         {
@@ -226,9 +226,9 @@ async function interactive(taskData, taskIds, columnName, columnNames) {
           message: 'Tag name:',
           validate: value => {
             if (!value) {
-              return 'Tag name cannot be empty';
+              return 'Tag name cannot be empty'
             }
-            return true;
+            return true
           }
         }
       ]
@@ -266,11 +266,11 @@ async function interactive(taskData, taskIds, columnName, columnNames) {
           name: 'task',
           message: 'Related task id:',
           source: (answers, input) => {
-            input = input || '';
-            const result = fuzzy.filter(input, taskIds);
+            input = input || ''
+            const result = fuzzy.filter(input, taskIds)
             return new Promise(resolve => {
-              resolve(result.map(result => result.string));
-            });
+              resolve(result.map(result => result.string))
+            })
           }
         },
         {
@@ -327,7 +327,7 @@ async function interactive(taskData, taskIds, columnName, columnNames) {
         }
       ]
     }
-  ]);
+  ])
 }
 
 /**
@@ -336,245 +336,240 @@ async function interactive(taskData, taskIds, columnName, columnNames) {
  * @param {object} taskData
  * @param {?string} columnName
  */
-function updateTask(taskId, taskData, columnName) {
+function updateTask (taskId, taskData, columnName) {
   kanbn
-  .updateTask(taskId, taskData, columnName)
-  .then(taskId => {
-    console.log(`Updated task "${taskId}"`);
-  })
-  .catch(error => {
-    utility.error(error);
-  });
+    .updateTask(taskId, taskData, columnName)
+    .then(taskId => {
+      console.log(`Updated task "${taskId}"`)
+    })
+    .catch(error => {
+      utility.error(error)
+    })
 }
 
 module.exports = async args => {
-
   // Make sure kanbn has been initialised
   if (!await kanbn.initialised()) {
-    utility.error('Kanbn has not been initialised in this folder\nTry running: {b}kanbn init{b}');
-    return;
+    utility.error('Kanbn has not been initialised in this folder\nTry running: {b}kanbn init{b}')
+    return
   }
 
   // Get the task that we're editing
-  const taskId = args._[1];
+  const taskId = args._[1]
   if (!taskId) {
-    utility.error('No task id specified\nTry running {b}kanbn edit "task id"{b}');
-    return;
+    utility.error('No task id specified\nTry running {b}kanbn edit "task id"{b}')
+    return
   }
 
   // Make sure the task exists
   try {
-    await kanbn.taskExists(taskId);
+    await kanbn.taskExists(taskId)
   } catch (error) {
-    utility.error(error);
-    return;
+    utility.error(error)
+    return
   }
 
   // Get the index and make sure it has some columns
-  let index;
+  let index
   try {
-    index = await kanbn.getIndex();
+    index = await kanbn.getIndex()
   } catch (error) {
-    utility.error(error);
-    return;
+    utility.error(error)
+    return
   }
-  const columnNames = Object.keys(index.columns);
+  const columnNames = Object.keys(index.columns)
   if (!columnNames.length) {
-    utility.error('No columns defined in the index\nTry running {b}kanbn init -c "column name"{b}');
-    return;
+    utility.error('No columns defined in the index\nTry running {b}kanbn init -c "column name"{b}')
+    return
   }
 
   // Get the current task data
-  let taskData;
+  let taskData
   try {
-    taskData = await kanbn.getTask(taskId);
+    taskData = await kanbn.getTask(taskId)
   } catch (error) {
-    utility.error(error);
-    return;
+    utility.error(error)
+    return
   }
 
   // Get column name if specified
-  let currentColumnName = await kanbn.findTaskColumn(taskId);
-  let columnName = currentColumnName;
+  const currentColumnName = await kanbn.findTaskColumn(taskId)
+  let columnName = currentColumnName
   if (args.column) {
-    columnName = utility.strArg(args.column);
+    columnName = utility.strArg(args.column)
     if (columnNames.indexOf(columnName) === -1) {
-      utility.error(`Column "${columnName}" doesn't exist`);
-      return;
+      utility.error(`Column "${columnName}" doesn't exist`)
+      return
     }
   }
 
   // Get a list of existing task ids
-  const taskIds = [...await kanbn.findTrackedTasks()];
+  const taskIds = [...await kanbn.findTrackedTasks()]
 
   // Get task settings from arguments
   // Name
   if (args.name) {
-    taskData.name = utility.strArg(args.name);
+    taskData.name = utility.strArg(args.name)
   }
 
   // Description
   if (args.description) {
-    taskData.description = utility.strArg(args.description);
+    taskData.description = utility.strArg(args.description)
   }
 
   // Due date
   if (args.due) {
     if (!('metadata' in taskData)) {
-      taskData.metadata = {};
+      taskData.metadata = {}
     }
-    taskData.metadata.due = chrono.parseDate(utility.strArg(args.due));
+    taskData.metadata.due = chrono.parseDate(utility.strArg(args.due))
     if (taskData.metadata.due === null) {
-      utility.error('Unable to parse due date');
-      return;
+      utility.error('Unable to parse due date')
+      return
     }
   }
 
   // Progress
   if (args.progress) {
     if (!('metadata' in taskData)) {
-      taskData.metadata = {};
+      taskData.metadata = {}
     }
-    const progressValue = parseFloat(utility.strArg(args.progress));
+    const progressValue = parseFloat(utility.strArg(args.progress))
     if (isNaN(progressValue)) {
-      utility.error('Progress value is not a number');
-      return;
+      utility.error('Progress value is not a number')
+      return
     }
-    taskData.metadata.progress = progressValue;
+    taskData.metadata.progress = progressValue
   }
 
   // Assigned
   if (args.assigned) {
     if (!('metadata' in taskData)) {
-      taskData.metadata = {};
+      taskData.metadata = {}
     }
-    const gitUsername = getGitUsername();
+    const gitUsername = getGitUsername()
     if (args.assigned === true) {
       if (gitUsername) {
-        taskData.metadata.assigned = gitUsername;
+        taskData.metadata.assigned = gitUsername
       }
     } else {
-      taskData.metadata.assigned = utility.strArg(args.assigned);
+      taskData.metadata.assigned = utility.strArg(args.assigned)
     }
   }
 
   // Remove sub-tasks
   if (args['remove-sub-task']) {
-    const removedSubTasks = utility.arrayArg(args['remove-sub-task']);
+    const removedSubTasks = utility.arrayArg(args['remove-sub-task'])
 
     // Check that the sub-tasks being removed currently exist
-    for (let removedSubTask of removedSubTasks) {
+    for (const removedSubTask of removedSubTasks) {
       if (taskData.subTasks.find(subTask => subTask.text === removedSubTask.text) === undefined) {
-        utility.error(`Sub-task "${removedSubTask.text}" doesn't exist`);
-        return;
+        utility.error(`Sub-task "${removedSubTask.text}" doesn't exist`)
+        return
       }
     }
-    taskData.subTasks = taskData.subTasks.filter(subTask => removedSubTasks.indexOf(subTask.text) === -1);
+    taskData.subTasks = taskData.subTasks.filter(subTask => removedSubTasks.indexOf(subTask.text) === -1)
   }
 
   // Add or update sub-tasks
   if (args['sub-task']) {
-    const newSubTaskInputs = utility.arrayArg(args['sub-task']);
+    const newSubTaskInputs = utility.arrayArg(args['sub-task'])
     const newSubTasks = newSubTaskInputs.map(subTask => {
-      const match = subTask.match(/^\[([x ])\] (.*)/);
+      const match = subTask.match(/^\[([x ])\] (.*)/)
       if (match !== null) {
         return {
           completed: match[1] === 'x',
           text: match[2]
-        };
+        }
       }
       return {
         completed: false,
         text: subTask
-      };
-    });
+      }
+    })
 
     // Add or update
-    for (let newSubTask of newSubTasks) {
-
+    for (const newSubTask of newSubTasks) {
       // Check if a sub-task already exists in the task with matching text
-      const foundSubTask = taskData.subTasks.find(subTask => subTask.text === newSubTask.text);
+      const foundSubTask = taskData.subTasks.find(subTask => subTask.text === newSubTask.text)
       if (foundSubTask === undefined) {
-
         // The sub-task doesn't already exist
-        taskData.subTasks.push(newSubTask);
+        taskData.subTasks.push(newSubTask)
 
       // Otherwise, the sub-task already exists so update its completed status
       } else {
-        foundSubTask.completed = newSubTask.completed;
+        foundSubTask.completed = newSubTask.completed
       }
     }
   }
 
   // Remove tags
   if (args['remove-tag']) {
-    const removedTags = utility.arrayArg(args['remove-tag']);
+    const removedTags = utility.arrayArg(args['remove-tag'])
 
     // Check that the task has metadata
     if (!('metadata' in taskData) || !('tags' in taskData.metadata) || !Array.isArray(taskData.metadata.tags)) {
-      utility.error('Task has no tags to remove');
-      return;
+      utility.error('Task has no tags to remove')
+      return
     }
 
     // Check that the tags being removed currently exist
-    for (let removedTag of removedTags) {
+    for (const removedTag of removedTags) {
       if (taskData.metadata.tags.indexOf(removedTag) === -1) {
-        utility.error(`Tag "${removedSubTask.text}" doesn't exist`);
-        return;
+        utility.error(`Tag "${removedTag.text}" doesn't exist`)
+        return
       }
     }
-    taskData.metadata.tags = taskData.metadata.tags.filter(tag => removedTags.indexOf(tag) === -1);
+    taskData.metadata.tags = taskData.metadata.tags.filter(tag => removedTags.indexOf(tag) === -1)
   }
 
   // Add tags and overwrite existing tags
   if (args.tag) {
-    const newTags = utility.arrayArg(args.tag);
-    taskData.metadata.tags = [...new Set([...taskData.metadata.tags || [], ...newTags])];
+    const newTags = utility.arrayArg(args.tag)
+    taskData.metadata.tags = [...new Set([...taskData.metadata.tags || [], ...newTags])]
   }
 
   // Remove relations
   if (args['remove-relation']) {
-    const removedRelations = utility.arrayArg(args['remove-relation']);
+    const removedRelations = utility.arrayArg(args['remove-relation'])
 
     // Check that the relations being removed currently exist
-    for (let removedRelation of removedRelations) {
+    for (const removedRelation of removedRelations) {
       if (taskData.relations.find(relation => relation.task === removedRelation.task) === undefined) {
-        utility.error(`Relation "${removedRelation.task}" doesn't exist`);
-        return;
+        utility.error(`Relation "${removedRelation.task}" doesn't exist`)
+        return
       }
     }
-    taskData.relations = taskData.relations.filter(relation => removedRelations.indexOf(relation.task) === -1);
+    taskData.relations = taskData.relations.filter(relation => removedRelations.indexOf(relation.task) === -1)
   }
 
   // Add or update relations
   if (args.relation) {
-    const newRelationInputs = utility.arrayArg(args.relation);
+    const newRelationInputs = utility.arrayArg(args.relation)
     const newRelations = newRelationInputs.map(relation => {
-      const parts = relation.split(' ');
+      const parts = relation.split(' ')
       return parts.length === 1
         ? {
-          type: '',
-          task: parts[0].trim()
-        }
+            type: '',
+            task: parts[0].trim()
+          }
         : {
-          type: parts[0].trim(),
-          task: parts[1].trim()
-        };
-    });
+            type: parts[0].trim(),
+            task: parts[1].trim()
+          }
+    })
 
     // Add or update
-    for (let newRelation of newRelations) {
-
+    for (const newRelation of newRelations) {
       // Check if a relation already exists in the task with matching task id
-      const foundRelation = taskData.relations.find(relation => relation.task === newRelation.task);
+      const foundRelation = taskData.relations.find(relation => relation.task === newRelation.task)
       if (foundRelation === undefined) {
-
         // The relation doesn't already exist
-        taskData.relations.push(newRelation);
+        taskData.relations.push(newRelation)
 
       // Otherwise, the relation already exists so update its relation type
       } else {
-        foundRelation.type = newRelation.type;
+        foundRelation.type = newRelation.type
       }
     }
   }
@@ -582,59 +577,59 @@ module.exports = async args => {
   // Check custom field types
   if ('customFields' in index.options) {
     if (!('metadata' in taskData)) {
-      taskData.metadata = {};
+      taskData.metadata = {}
     }
-    for (let arg of Object.keys(args)) {
-
+    for (const arg of Object.keys(args)) {
       // Check if we're removing a custom field
-      const removeCustomField = index.options.customFields.find(p => `remove-${p.name}` === arg);
+      const removeCustomField = index.options.customFields.find(p => `remove-${p.name}` === arg)
       if (removeCustomField !== undefined) {
         if (removeCustomField.name in taskData.metadata) {
-          delete taskData.metadata[removeCustomField.name];
+          delete taskData.metadata[removeCustomField.name]
         }
       }
 
       // Check if we're adding or modifying a custom field
-      const customField = index.options.customFields.find(p => p.name === arg);
+      const customField = index.options.customFields.find(p => p.name === arg)
       if (customField !== undefined) {
-
         // Check value type
         switch (customField.type) {
           case 'boolean':
             if (typeof args[arg] === 'boolean') {
-              taskData.metadata[arg] = args[arg];
+              taskData.metadata[arg] = args[arg]
             } else {
-              utility.error(`Custom field "${arg}" value is not a boolean`);
-              return;
+              utility.error(`Custom field "${arg}" value is not a boolean`)
+              return
             }
-            break;
-          case 'number':
-            const numberValue = parseFloat(args[arg]);
+            break
+          case 'number': {
+            const numberValue = parseFloat(args[arg])
             if (!isNaN(numberValue)) {
-              taskData.metadata[arg] = numberValue;
+              taskData.metadata[arg] = numberValue
             } else {
-              utility.error(`Custom field "${arg}" value is not a number`);
-              return;
+              utility.error(`Custom field "${arg}" value is not a number`)
+              return
             }
-            break;
+            break
+          }
           case 'string':
             if (typeof args[arg] === 'string') {
-              taskData.metadata[arg] = args[arg];
+              taskData.metadata[arg] = args[arg]
             } else {
-              utility.error(`Custom field "${fieldName}" value is not a string`);
-              return;
+              utility.error(`Custom field "${arg}" value is not a string`)
+              return
             }
-            break;
-          case 'date':
-            const dateValue = chrono.parseDate(args[arg]);
+            break
+          case 'date': {
+            const dateValue = chrono.parseDate(args[arg])
             if (dateValue instanceof Date) {
-              taskData.metadata[arg] = dateValue;
+              taskData.metadata[arg] = dateValue
             } else {
-              utility.error(`Unable to parse date for custom field "${arg}"`);
-              return;
+              utility.error(`Unable to parse date for custom field "${arg}"`)
+              return
             }
-            break;
-          default: break;
+            break
+          }
+          default: break
         }
       }
     }
@@ -643,116 +638,115 @@ module.exports = async args => {
   // Update task interactively
   if (args.interactive) {
     interactive(taskData, taskIds, columnName, columnNames)
-    .then(answers => {
+      .then(answers => {
+        // Name
+        taskData.name = answers.name
 
-      // Name
-      taskData.name = answers.name;
+        // Description
+        if ('description' in answers) {
+          taskData.description = answers.description
+        }
 
-      // Description
-      if ('description' in answers) {
-        taskData.description = answers.description;
-      }
+        // Remove due date
+        if ('editDue' in answers && answers.editDue === 'remove') {
+          delete taskData.metadata.due
+        }
 
-      // Remove due date
-      if ('editDue' in answers && answers.editDue === 'remove') {
-        delete taskData.metadata.due;
-      }
+        // Due date
+        if ('due' in answers) {
+          taskData.metadata.due = answers.due.toISOString()
+        }
 
-      // Due date
-      if ('due' in answers) {
-        taskData.metadata.due = answers.due.toISOString();
-      }
+        // Remove assigned
+        if ('editAssigned' in answers && answers.editAssigned === 'remove') {
+          delete taskData.metadata.assigned
+        }
 
-      // Remove assigned
-      if ('editAssigned' in answers && answers.editAssigned === 'remove') {
-        delete taskData.metadata.assigned;
-      }
+        // Assigned
+        if ('assigned' in answers) {
+          taskData.metadata.assigned = answers.assigned
+        }
 
-      // Assigned
-      if ('assigned' in answers) {
-        taskData.metadata.assigned = answers.assigned;
-      }
-
-      // Edit or remove sub-tasks
-      if ('editSubTasks' in answers) {
-        for (editSubTask of answers.editSubTasks) {
-          const i = taskData.subTasks.findIndex(subTask => subTask.task === editSubTask.selectSubTask);
-          if (i !== -1) {
-            switch (editSubTask.editSubTask) {
-              case 'remove':
-                taskData.subTasks.splice(i, 1);
-                break;
-              case 'edit':
-                taskData.subTasks[i].completed = editSubTask.completed;
-                break;
-              default:
-                break;
+        // Edit or remove sub-tasks
+        if ('editSubTasks' in answers) {
+          for (const editSubTask of answers.editSubTasks) {
+            const i = taskData.subTasks.findIndex(subTask => subTask.task === editSubTask.selectSubTask)
+            if (i !== -1) {
+              switch (editSubTask.editSubTask) {
+                case 'remove':
+                  taskData.subTasks.splice(i, 1)
+                  break
+                case 'edit':
+                  taskData.subTasks[i].completed = editSubTask.completed
+                  break
+                default:
+                  break
+              }
             }
           }
         }
-      }
 
-      // Add sub-tasks
-      if ('addSubTasks' in answers) {
-        taskData.subTasks.push(...answers.addSubTasks.map(addSubTask => ({
-          text: addSubTask.text,
-          completed: addSubTask.completed
-        })));
-      }
-
-      // Remove tags
-      if ('removeTags' in answers && 'metadata' in taskData && 'tags' in taskData.metadata) {
-        for (removeTag of answers.removeTags) {
-          const i = taskData.metadata.tags.indexOf(removeTag.name);
-          if (i !== -1) {
-            taskData.metadata.tags.splice(i, 1);
-          }
+        // Add sub-tasks
+        if ('addSubTasks' in answers) {
+          taskData.subTasks.push(...answers.addSubTasks.map(addSubTask => ({
+            text: addSubTask.text,
+            completed: addSubTask.completed
+          })))
         }
-      }
 
-      // Add tags
-      if ('addTags' in answers && 'metadata' in taskData && 'tags' in taskData.metadata) {
-        taskData.metadata.tags.push(...answers.addTags.map(tag => tag.name));
-      }
-
-      // Edit or remove relations
-      if ('editRelations' in answers) {
-        for (editRelation of answers.editRelations) {
-          const i = taskData.relations.findIndex(relation => relation.task === editRelation.selectRelation);
-          if (i !== -1) {
-            switch (editRelation.editRelation) {
-              case 'remove':
-                taskData.relations.splice(i, 1);
-                break;
-              case 'edit':
-                taskData.relations[i].type = editRelation.type;
-                break;
-              default:
-                break;
+        // Remove tags
+        if ('removeTags' in answers && 'metadata' in taskData && 'tags' in taskData.metadata) {
+          for (const removeTag of answers.removeTags) {
+            const i = taskData.metadata.tags.indexOf(removeTag.name)
+            if (i !== -1) {
+              taskData.metadata.tags.splice(i, 1)
             }
           }
         }
-      }
 
-      // Add relations
-      if ('addRelations' in answers) {
-        taskData.relations.push(...answers.addRelations.map(addRelation => ({
-          task: addRelation.task,
-          type: addRelation.type
-        })));
-      }
+        // Add tags
+        if ('addTags' in answers && 'metadata' in taskData && 'tags' in taskData.metadata) {
+          taskData.metadata.tags.push(...answers.addTags.map(tag => tag.name))
+        }
 
-      // Update task
-      columnName = answers.column !== currentColumnName ? answers.column : null;
-      updateTask(taskId, taskData, columnName);
-    })
-    .catch(error => {
-      utility.error(error);
-    });
+        // Edit or remove relations
+        if ('editRelations' in answers) {
+          for (const editRelation of answers.editRelations) {
+            const i = taskData.relations.findIndex(relation => relation.task === editRelation.selectRelation)
+            if (i !== -1) {
+              switch (editRelation.editRelation) {
+                case 'remove':
+                  taskData.relations.splice(i, 1)
+                  break
+                case 'edit':
+                  taskData.relations[i].type = editRelation.type
+                  break
+                default:
+                  break
+              }
+            }
+          }
+        }
+
+        // Add relations
+        if ('addRelations' in answers) {
+          taskData.relations.push(...answers.addRelations.map(addRelation => ({
+            task: addRelation.task,
+            type: addRelation.type
+          })))
+        }
+
+        // Update task
+        columnName = answers.column !== currentColumnName ? answers.column : null
+        updateTask(taskId, taskData, columnName)
+      })
+      .catch(error => {
+        utility.error(error)
+      })
 
   // Otherwise edit task non-interactively
   } else {
-    columnName = columnName !== currentColumnName ? columnName : null;
-    updateTask(taskId, taskData, columnName);
+    columnName = columnName !== currentColumnName ? columnName : null
+    updateTask(taskId, taskData, columnName)
   }
-};
+}

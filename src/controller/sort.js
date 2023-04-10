@@ -1,8 +1,8 @@
-const kanbn = require('../main');
-const utility = require('../utility');
-const inquirer = require('inquirer');
+const kanbn = require('../main')
+const utility = require('../utility')
+const inquirer = require('inquirer')
 
-inquirer.registerPrompt('recursive', require('inquirer-recursive'));
+inquirer.registerPrompt('recursive', require('inquirer-recursive'))
 
 const sorterFields = [
   {
@@ -163,7 +163,7 @@ const sorterFields = [
     ],
     filterable: true
   }
-];
+]
 
 /**
  * Sort a column interactively
@@ -172,8 +172,8 @@ const sorterFields = [
  * @param {object[]} sorters
  * @return {Promise<any>}
  */
-async function interactive(columnName, columnNames, sorters) {
-  const sorterNameToField = Object.fromEntries(sorterFields.map(sorterField => [sorterField.name, sorterField.field]));
+async function interactive (columnName, columnNames, sorters) {
+  const sorterNameToField = Object.fromEntries(sorterFields.map(sorterField => [sorterField.name, sorterField.field]))
   return await inquirer.prompt([
     {
       type: 'rawlist',
@@ -204,9 +204,9 @@ async function interactive(columnName, columnNames, sorters) {
           default: false,
           when: answers => (
             sorterFields
-            .filter(sorterField => sorterField.filterable)
-            .map(sorterField => sorterField.field)
-            .indexOf(answers.field) !== -1
+              .filter(sorterField => sorterField.filterable)
+              .map(sorterField => sorterField.field)
+              .indexOf(answers.field) !== -1
           )
         },
         {
@@ -216,9 +216,9 @@ async function interactive(columnName, columnNames, sorters) {
           when: answers => answers.addFilter,
           validate: value => {
             if (!value) {
-              return 'Filter cannot be empty';
+              return 'Filter cannot be empty'
             }
-            return true;
+            return true
           }
         },
         {
@@ -231,13 +231,13 @@ async function interactive(columnName, columnNames, sorters) {
             'Descending'
           ],
           filter: (value, answers) => ({
-            'Ascending': 'ascending',
-            'Descending': 'descending'
+            Ascending: 'ascending',
+            Descending: 'descending'
           })[value]
         }
       ]
     }
-  ]);
+  ])
 }
 
 /**
@@ -246,24 +246,23 @@ async function interactive(columnName, columnNames, sorters) {
  * @param {object[]} sorters
  * @param {boolean} save
  */
-function sortColumn(columnName, sorters, save) {
+function sortColumn (columnName, sorters, save) {
   kanbn
-  .sort(columnName, sorters, save)
-  .then(() => {
-    console.log(`Column "${columnName}" sorted`);
-  })
-  .catch(error => {
-    utility.error(error);
-  });
+    .sort(columnName, sorters, save)
+    .then(() => {
+      console.log(`Column "${columnName}" sorted`)
+    })
+    .catch(error => {
+      utility.error(error)
+    })
 }
 
 module.exports = async (args, argv) => {
-
   // Sortable fields and aliases
   const sortOptions = Object.fromEntries(utility.zip(
     sorterFields.map(sorterField => sorterField.options).flat(),
     sorterFields.map(sorterField => (new Array(sorterField.options.length)).fill(sorterField.field)).flat()
-  ));
+  ))
 
   // Sorting order and aliases
   const orderOptions = {
@@ -271,42 +270,42 @@ module.exports = async (args, argv) => {
     '-a': 'ascending',
     '--descending': 'descending',
     '-z': 'descending'
-  };
+  }
 
   // Skip these options
   const skipOptions = [
     '--interactive',
     '-i',
     '--save'
-  ];
+  ]
 
   // Get the column that we're sorting
-  argv = argv.slice(3);
-  const columnName = args._.length > 1 ? args._[1] : null;
+  argv = argv.slice(3)
+  const columnName = args._.length > 1 ? args._[1] : null
 
   // Column name must be defined if not sorting interactively
   if (columnName === null && !args.interactive) {
-    utility.error('No column name specified\nTry running {b}kanbn sort "column"{b} or {b}kanbn sort -i{b}');
-    return;
+    utility.error('No column name specified\nTry running {b}kanbn sort "column"{b} or {b}kanbn sort -i{b}')
+    return
   }
 
   // Get the index and make sure it has some columns
-  let index;
+  let index
   try {
-    index = await kanbn.getIndex();
+    index = await kanbn.getIndex()
   } catch (error) {
-    utility.error(error);
-    return;
+    utility.error(error)
+    return
   }
-  const columnNames = Object.keys(index.columns);
+  const columnNames = Object.keys(index.columns)
   if (!columnNames.length) {
-    utility.error('No columns defined in the index\nTry running {b}kanbn init -c "column name"{b}');
-    return;
+    utility.error('No columns defined in the index\nTry running {b}kanbn init -c "column name"{b}')
+    return
   }
 
   // Add custom fields to sort fields
   if ('customFields' in index.options) {
-    for (let customField of index.options.customFields) {
+    for (const customField of index.options.customFields) {
       sorterFields.push({
         name: customField.name,
         field: customField.name,
@@ -314,82 +313,82 @@ module.exports = async (args, argv) => {
           `--${customField.name}`
         ],
         filterable: customField.type === 'string'
-      });
+      })
     }
   }
 
   // If a column name is defined, make sure it exists in the index
   if (columnName !== null) {
     if (columnNames.indexOf(columnName) === -1) {
-      utility.error(`Column "${columnName}" doesn't exist`);
-      return;
+      utility.error(`Column "${columnName}" doesn't exist`)
+      return
     }
-    argv.shift();
+    argv.shift()
   }
 
   // Get the default sorting order
-  let defaultOrder = "ascending";
+  let defaultOrder = 'ascending'
   if (argv[0] in orderOptions) {
-    defaultOrder = orderOptions[argv[0]];
-    argv.shift();
+    defaultOrder = orderOptions[argv[0]]
+    argv.shift()
   }
 
   // Create a list of fields to sort by
-  const sorters = [];
-  let currentSorter = null, expectingFilter = false;
-  for (let arg of argv) {
+  const sorters = []
+  let currentSorter = null; let expectingFilter = false
+  for (const arg of argv) {
     if (skipOptions.indexOf(arg) !== -1) {
-      continue;
+      continue
     }
     if (arg in sortOptions) {
       if (currentSorter !== null) {
-        sorters.push(currentSorter);
+        sorters.push(currentSorter)
       }
       currentSorter = {
         field: sortOptions[arg],
         filter: '',
         order: defaultOrder
-      };
-      expectingFilter = true;
+      }
+      expectingFilter = true
     } else if (currentSorter && currentSorter.field) {
       if (arg in orderOptions) {
-        currentSorter.order = orderOptions[arg];
-        expectingFilter = false;
+        currentSorter.order = orderOptions[arg]
+        expectingFilter = false
       }
       if (expectingFilter) {
-        currentSorter.filter = arg;
-        expectingFilter = false;
+        currentSorter.filter = arg
+        expectingFilter = false
       }
     }
   }
   if (currentSorter && currentSorter.field) {
-    sorters.push(currentSorter);
+    sorters.push(currentSorter)
   }
 
   // Build sorters interactively
   if (args.interactive) {
     interactive(columnName, columnNames, sorters)
-    .then(answers => {
-      inquirer
-      .prompt({
-        type: 'confirm',
-        name: 'save',
-        message: 'Save sort settings?',
-        default: args.save
-      })
-      .then(saveAnswer => {
-        sortColumn(answers.column, answers.sorters, saveAnswer.save);
+      .then(answers => {
+        inquirer
+          .prompt({
+            type: 'confirm',
+            name: 'save',
+            message: 'Save sort settings?',
+            default: args.save
+          })
+          .then(saveAnswer => {
+            sortColumn(answers.column, answers.sorters, saveAnswer.save)
+          })
+          .catch(error => {
+            utility.error(error)
+          })
       })
       .catch(error => {
-        utility.error(error);
-      });
-    })
-    .catch(error => {
-      utility.error(error);
-    });
+        utility.error(error)
+      })
 
   // Otherwise sort a column non-interactively
   } else {
-    sortColumn(columnName, sorters, args.save);
+    sortColumn(columnName, sorters, args.save)
   }
-};
+}

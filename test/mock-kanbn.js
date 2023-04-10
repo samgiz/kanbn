@@ -7,7 +7,7 @@ const TEST_INDEX = {
     ]
   },
   options: {}
-};
+}
 
 const TEST_TASK = {
   name: 'Test Task 1',
@@ -16,7 +16,7 @@ const TEST_TASK = {
   subTasks: [],
   relations: [],
   comments: []
-};
+}
 
 // Store mock settings and output
 const config = {
@@ -29,61 +29,61 @@ const config = {
   trackedTasks: [],
   untrackedTasks: [],
   archivedTasks: []
-};
+}
 
 // Mock kanbn library
 const kanbn = {
-  async initialised() {
-    return config.initialised;
+  async initialised () {
+    return config.initialised
   },
-  async getMainFolder() {
-    return config.mainFolderName;
+  async getMainFolder () {
+    return config.mainFolderName
   },
-  async initialise(options = {}) {
-    config.output = options;
+  async initialise (options = {}) {
+    config.output = options
   },
-  async getIndex() {
-    return config.index;
+  async getIndex () {
+    return config.index
   },
-  async findTrackedTasks() {
-    return config.trackedTasks;
+  async findTrackedTasks () {
+    return config.trackedTasks
   },
-  async findUntrackedTasks() {
-    return config.untrackedTasks;
+  async findUntrackedTasks () {
+    return config.untrackedTasks
   },
-  async taskExists(taskId) {
+  async taskExists (taskId) {
     if (!config.taskExists) {
-      throw new Error(`No task file found with id "${taskId}"`);
+      throw new Error(`No task file found with id "${taskId}"`)
     }
   },
-  async createTask(taskData, columnName) {
+  async createTask (taskData, columnName) {
     config.output = {
       taskData,
       columnName
-    };
+    }
   },
-  async addUntrackedTaskToIndex(untrackedTask, columnName) {
+  async addUntrackedTaskToIndex (untrackedTask, columnName) {
     config.output = {
       untrackedTask,
       columnName
-    };
+    }
   },
-  async listArchivedTasks() {
-    return config.archivedTasks;
+  async listArchivedTasks () {
+    return config.archivedTasks
   },
-  async archiveTask(taskId) {
+  async archiveTask (taskId) {
     config.output = {
       taskId
-    };
-    return taskId;
+    }
+    return taskId
   },
-  async restoreTask(taskId, columnName) {
+  async restoreTask (taskId, columnName) {
     config.output = {
       taskId,
       columnName
-    };
-    return taskId;
+    }
+    return taskId
   }
-};
+}
 
-module.exports = { config, kanbn };
+module.exports = { config, kanbn }

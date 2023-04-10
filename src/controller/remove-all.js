@@ -1,31 +1,30 @@
-const kanbn = require('../main');
-const utility = require('../utility');
-const inquirer = require('inquirer');
+const kanbn = require('../main')
+const utility = require('../utility')
+const inquirer = require('inquirer')
 
 /**
  * Nuke kanbn
  */
-function removeAll() {
+function removeAll () {
   kanbn.removeAll()
-  .then(() => {
-    console.log('kanbn has been removed');
-  })
-  .catch(error => {
-    utility.error(error);
-  });
+    .then(() => {
+      console.log('kanbn has been removed')
+    })
+    .catch(error => {
+      utility.error(error)
+    })
 }
 
 module.exports = async args => {
-
   // Make sure kanbn has been initialised
   if (!await kanbn.initialised()) {
-    utility.error('Kanbn has not been initialised in this folder\nTry running: {b}kanbn init{b}');
-    return;
+    utility.error('Kanbn has not been initialised in this folder\nTry running: {b}kanbn init{b}')
+    return
   }
 
   // If the force flag is specified, remove kanbn without asking
   if (args.force) {
-    removeAll();
+    removeAll()
 
   // Otherwise, prompt for confirmation first
   } else {
@@ -38,10 +37,10 @@ module.exports = async args => {
       }
     ]).then(async answers => {
       if (answers.sure) {
-        removeAll();
+        removeAll()
       }
     }).catch(error => {
-      utility.error(error);
+      utility.error(error)
     })
   }
-};
+}

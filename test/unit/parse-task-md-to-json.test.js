@@ -1,10 +1,11 @@
-const parseTask = require('../../src/parse-task');
+const QUnit = require('qunit')
+const parseTask = require('../../src/parse-task')
 
-QUnit.module('Task markdown to JSON conversion tests');
+QUnit.module('Task markdown to JSON conversion tests')
 
-const TEST_ID = 'test-name';
-const TEST_NAME = 'Test Name';
-const TEST_DESCRIPTION_1 = 'Test description...';
+const TEST_ID = 'test-name'
+const TEST_NAME = 'Test Name'
+const TEST_DESCRIPTION_1 = 'Test description...'
 const TEST_DESCRIPTION_2 = `This is a *test* description
 
 It has some code:
@@ -25,7 +26,7 @@ More description
 
 ### Sub-heading 1.1
 
-And more description...`;
+And more description...`
 const TEST_DESCRIPTION_3 = `## Sub-sub-heading 2
 
 Some more description text...
@@ -36,60 +37,60 @@ Some more description text...
 
 #### Sub-sub-sub-heading 2.1.1
 
-Some more description text...`;
+Some more description text...`
 const TEST_METADATA = `
 tags:
   - tag1
   - tag2
   - tag3
-`;
+`
 const TEST_METADATA_JSON = {
   tags: [
     'tag1',
     'tag2',
     'tag3'
   ]
-};
-const TEST_SUBTASK_1 = 'Test sub-task 1';
+}
+const TEST_SUBTASK_1 = 'Test sub-task 1'
 const TEST_SUBTASK_1_JSON = {
   text: 'Test sub-task 1',
   completed: false
-};
-const TEST_SUBTASK_2 = '[ ] Test sub-task 2';
+}
+const TEST_SUBTASK_2 = '[ ] Test sub-task 2'
 const TEST_SUBTASK_2_JSON = {
   text: 'Test sub-task 2',
   completed: false
-};
-const TEST_SUBTASK_3 = '[x] Test sub-task 3';
+}
+const TEST_SUBTASK_3 = '[x] Test sub-task 3'
 const TEST_SUBTASK_3_JSON = {
   text: 'Test sub-task 3',
   completed: true
-};
-const TEST_RELATION_1 = 'Test relation';
+}
+const TEST_RELATION_1 = 'Test relation'
 const TEST_RELATION_1_JSON = {
   task: 'relation',
   type: 'Test'
-};
-const TEST_RELATION_2 = 'test-task-1';
+}
+const TEST_RELATION_2 = 'test-task-1'
 const TEST_RELATION_2_JSON = {
   task: 'test-task-1',
   type: ''
-};
-const TEST_RELATION_3 = '[test-task-1](test-task-1.md)';
+}
+const TEST_RELATION_3 = '[test-task-1](test-task-1.md)'
 const TEST_RELATION_3_JSON = {
   task: 'test-task-1',
   type: ''
-};
-const TEST_RELATION_4 = '[relation-type test-task-1](test-task-1.md)';
+}
+const TEST_RELATION_4 = '[relation-type test-task-1](test-task-1.md)'
 const TEST_RELATION_4_JSON = {
   task: 'test-task-1',
   type: 'relation-type'
-};
-const TEST_RELATION_5 = '[relation type with spaces test-task-1](test-task-1.md)';
+}
+const TEST_RELATION_5 = '[relation type with spaces test-task-1](test-task-1.md)'
 const TEST_RELATION_5_JSON = {
   task: 'test-task-1',
   type: 'relation type with spaces'
-};
+}
 
 const invalidCases = [
   {
@@ -132,7 +133,7 @@ Invalid metadata
 
 Invalid sub-tasks content
 `,
-  error: /sub-tasks must contain a list/
+    error: /sub-tasks must contain a list/
   },
   {
     md: `
@@ -215,7 +216,7 @@ Invalid metadata
 `,
     error: /invalid metadata content/
   }
-];
+]
 
 const validCases = [
   {
@@ -496,16 +497,16 @@ moreValidMetadata: test3
       comments: []
     }
   }
-];
+]
 
 QUnit.test('Test task to json conversion with valid markdown', assert => {
   validCases.forEach((validCase, i) => {
-    assert.deepEqual(parseTask.md2json(validCase.md), validCase.json, `Failed on valid case ${i + 1}`);
-  });
-});
+    assert.deepEqual(parseTask.md2json(validCase.md), validCase.json, `Failed on valid case ${i + 1}`)
+  })
+})
 
 QUnit.test('Test task to json conversion with invalid markdown', assert => {
   invalidCases.forEach((invalidCase, i) => {
-    assert.throws(() => { parseTask.md2json(invalidCase.md); }, invalidCase.error, `Failed on invalid case ${i + 1}`);
-  });
-});
+    assert.throws(() => { parseTask.md2json(invalidCase.md) }, invalidCase.error, `Failed on invalid case ${i + 1}`)
+  })
+})

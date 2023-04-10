@@ -1,7 +1,7 @@
-const kanbn = require('../main');
-const utility = require('../utility');
-const inquirer = require('inquirer');
-const getGitUsername = require('git-user-name');
+const kanbn = require('../main')
+const utility = require('../utility')
+const inquirer = require('inquirer')
+const getGitUsername = require('git-user-name')
 
 /**
  * Add a comment interactively
@@ -9,7 +9,7 @@ const getGitUsername = require('git-user-name');
  * @param {string} author
  * @return {Promise<any>}
  */
-async function interactive(text, author) {
+async function interactive (text, author) {
   return await inquirer.prompt([
     {
       type: 'input',
@@ -18,9 +18,9 @@ async function interactive(text, author) {
       default: text || '',
       validate: async value => {
         if (!value) {
-          return 'Comment text cannot be empty';
+          return 'Comment text cannot be empty'
         }
-        return true;
+        return true
       }
     },
     {
@@ -29,7 +29,7 @@ async function interactive(text, author) {
       message: 'Author:',
       default: author || ''
     }
-  ]);
+  ])
 }
 
 /**
@@ -38,67 +38,66 @@ async function interactive(text, author) {
  * @param {string} text
  * @param {string} author
  */
-function addComment(taskId, text, author) {
+function addComment (taskId, text, author) {
   kanbn
-  .comment(taskId, text, author)
-  .then(taskId => {
-    console.log(`Added comment to task "${taskId}"`);
-  })
-  .catch(error => {
-    utility.error(error);
-  });
+    .comment(taskId, text, author)
+    .then(taskId => {
+      console.log(`Added comment to task "${taskId}"`)
+    })
+    .catch(error => {
+      utility.error(error)
+    })
 }
 
 module.exports = async args => {
-
   // Make sure kanbn has been initialised
   if (!await kanbn.initialised()) {
-    utility.error('Kanbn has not been initialised in this folder\nTry running: {b}kanbn init{b}');
-    return;
+    utility.error('Kanbn has not been initialised in this folder\nTry running: {b}kanbn init{b}')
+    return
   }
 
   // Get the task that we're add a comment to
-  const taskId = args._[1];
+  const taskId = args._[1]
   if (!taskId) {
-    utility.error('No task id specified\nTry running {b}kanbn comment "task id"{b}');
-    return;
+    utility.error('No task id specified\nTry running {b}kanbn comment "task id"{b}')
+    return
   }
 
   // Make sure the task exists
   try {
-    await kanbn.taskExists(taskId);
+    await kanbn.taskExists(taskId)
   } catch (error) {
-    utility.error(error);
-    return;
+    utility.error(error)
+    return
   }
 
   // Get comment values from arguments
-  let commentText = '', commentAuthor = '';
+  let commentText = ''; let commentAuthor = ''
 
   // Text
   if (args.text) {
-    commentText = utility.strArg(args.text);
+    commentText = utility.strArg(args.text)
   }
 
   // Author
   if (args.author && typeof args.author === 'string') {
-    commentAuthor = utility.strArg(args.author);
+    commentAuthor = utility.strArg(args.author)
   } else {
-    commentAuthor = getGitUsername();
+    commentAuthor = getGitUsername()
   }
 
   // Add comment interactively
   if (args.interactive) {
     interactive(commentText, commentAuthor)
-    .then(answers => {
-      addComment(taskId, answers.text, answers.author);
-    })
-    .catch(error => {
-      utility.error(error);
-    });
+      .then(answers => {
+        addComment(taskId, answers.text, answers.author)
+      })
+      .catch(error => {
+        utility.error(error)
+      })
 
   // Otherwise add comment non-interactively
   } else {
-    addComment(taskId, commentText, commentAuthor);
+    addComment(taskId, commentText, commentAuthor)
   }
-};
+}
