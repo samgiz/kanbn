@@ -1,6 +1,8 @@
 /* eslint-disable no-useless-escape */
 module.exports = (() => {
-  const tags = {
+  type Tag1 = 'b' | 'd'
+  type Tag2 = 'bold' | 'dim'
+  const tags: Record<Tag1, Tag2> = {
     b: 'bold',
     d: 'dim'
   }
@@ -12,7 +14,7 @@ module.exports = (() => {
      * @param {Error|string} error
      * @param {boolean} dontExit
      */
-    error (error, dontExit = false) {
+    error (error: Error|string, dontExit: boolean = false) {
       const message = error instanceof Error
         ? (process.env.DEBUG === 'true' ? error : this.replaceTags(error.message))
         : this.replaceTags(error)
@@ -27,7 +29,7 @@ module.exports = (() => {
      * @param {string} s The string to convert
      * @return {string} The converted string
      */
-    paramCase (s) {
+    paramCase (s: string) {
       return s
         .replace(
           /([A-Z]+(.))/g,
@@ -43,7 +45,7 @@ module.exports = (() => {
      * @param {string} name The task name
      * @return {string} The task id
      */
-    getTaskId (name) {
+    getTaskId (name: string) {
       return this.paramCase(name)
     },
 
@@ -53,7 +55,7 @@ module.exports = (() => {
      * @param {string|string[]} arg An argument that might be a string or an array of strings
      * @return {string} The argument value as a string
      */
-    strArg (arg, all = false) {
+    strArg (arg: string | string[], all = false) {
       if (Array.isArray(arg)) {
         return all ? arg.join(',') : arg.pop()
       }
@@ -65,7 +67,7 @@ module.exports = (() => {
      * @param {string|string[]} arg An argument that might be a string or an array of strings
      * @return {string[]} The argument value as an array
      */
-    arrayArg (arg) {
+    arrayArg (arg: string | string[]) {
       if (Array.isArray(arg)) {
         return arg
       }
@@ -76,7 +78,7 @@ module.exports = (() => {
      * Remove escape characters ('/' and '\') from the beginning of a string
      * @param {string} s The string to trim
      */
-    trimLeftEscapeCharacters (s) {
+    trimLeftEscapeCharacters (s: string) {
       return s.replace(/^[\\\/]+/, '')
     },
 
@@ -86,7 +88,7 @@ module.exports = (() => {
      * @param {Date} b
      * @return {boolean} True if the dates are the same
      */
-    compareDates (a, b) {
+    compareDates (a: Date, b: Date) {
       const aDate = new Date(a); const bDate = new Date(b)
       aDate.setHours(0, 0, 0, 0)
       bDate.setHours(0, 0, 0, 0)
@@ -99,7 +101,7 @@ module.exports = (() => {
      * @param {string} type
      * @return {string|number}
      */
-    coerceUndefined (a, type) {
+    coerceUndefined (a: any, type: 'string' | 'number') {
       if (a === undefined) {
         switch (type) {
           case 'string':
@@ -116,7 +118,7 @@ module.exports = (() => {
      * @param {string} s The string to wrap
      * @return {string} The updated string
      */
-    bold (s) {
+    bold (s: string) {
       return `\x1b[1m${s}\x1b[0m`
     },
 
@@ -125,7 +127,7 @@ module.exports = (() => {
      * @param {string} s The string to wrap
      * @return {string} The updated string
      */
-    dim (s) {
+    dim (s: string) {
       return `\x1b[2m${s}\x1b[0m`
     },
 
@@ -134,10 +136,10 @@ module.exports = (() => {
      * @param {string} s The string in which to replace tags
      * @return {string} The updated string
      */
-    replaceTags (s) {
-      for (const tag in tags) {
-        const r = new RegExp(`\{${tag}\}([^{]+)\{${tag}\}`, 'g')
-        s = s.replace(r, (m, s) => this[tags[tag]](s))
+    replaceTags (s: string) {
+      for (const [tag1, tag2] of Object.entries(tags)) {
+        const r = new RegExp(`\{${tag1}\}([^{]+)\{${tag1}\}`, 'g')
+        s = s.replace(r, (m, s) => this[tag2](s))
       }
       return s
     },
@@ -148,6 +150,6 @@ module.exports = (() => {
      * @param {any[]} b
      * @return {any[]}
      */
-    zip: (a, b) => a.map((k, i) => [k, b[i]])
+    zip: (a: any[], b: any[]) => a.map((k, i) => [k, b[i]])
   }
 })()
