@@ -67,7 +67,7 @@ module.exports = (() => {
      * @param {string|string[]} arg An argument that might be a string or an array of strings
      * @return {string[]} The argument value as an array
      */
-    arrayArg (arg: string | string[]) {
+    arrayArg (arg: string | string[]): string[] {
       if (Array.isArray(arg)) {
         return arg
       }
