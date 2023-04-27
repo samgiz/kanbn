@@ -1,4 +1,4 @@
-module.exports = function parseMarkdown (markdown) {
+export function parseMarkdown (markdown: string) {
   if (!markdown) {
     throw new Error('data is null, undefined or empty')
   }
@@ -9,7 +9,7 @@ module.exports = function parseMarkdown (markdown) {
   if (markdown === '') {
     throw new Error('data is an empty string')
   }
-  const headings = [...markdown.matchAll(/^#{1,6} (?<title>.+)/gm)].map(({ 0: heading, 1: title, index }) => ({
+  const headings: any[] = [...markdown.matchAll(/^#{1,6} (?<title>.+)/gm)].map(({ 0: heading, 1: title, index }) => ({
     heading,
     title,
     index
@@ -21,7 +21,7 @@ module.exports = function parseMarkdown (markdown) {
       index: 0
     })
   }
-  const parsed = {}
+  const parsed: any = {}
   for (let i = 0; i < headings.length; i++) {
     parsed[headings[i].title] = {
       heading: headings[i].heading,

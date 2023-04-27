@@ -1,16 +1,17 @@
 const yaml = require('yamljs')
 const fm = require('front-matter')
 const marked = require('marked')
-const utility = require('./utility')
+import * as utility from './utility'
 const chrono = require('chrono-node')
-const validate = require('jsonschema').validate
-const parseMarkdown = require('./parse-markdown')
+const validate = require('jsonschema').require
+import { parseMarkdown } from './parse-markdown'
+import { Task } from './model/Task'
 
 /**
  * Compile separate headings together into a task description
  * @param {object} data
  */
-function compileDescription (data) {
+function compileDescription (data: any) {
   const description = []
   if ('raw' in data) {
     description.push(data.raw.content.replace(/[\r\n]{3}/g, '\n\n').trim())
@@ -31,7 +32,7 @@ function compileDescription (data) {
  * Validate the metadata object converted from Markdown
  * @param {object} metadata
  */
-function validateMetadataFromMarkdown (metadata) {
+function validateMetadataFromMarkdown (metadata: any) {
   const result = validate(metadata, {
     type: 'object',
     properties: {
@@ -75,7 +76,7 @@ function validateMetadataFromMarkdown (metadata) {
     }
   })
   if (result.errors.length) {
-    throw new Error(result.errors.map(error => `\n${error.property} ${error.message}`).join(''))
+    throw new Error(result.errors.map((error: any) => `\n${error.property} ${error.message}`).join(''))
   }
 }
 
@@ -83,7 +84,7 @@ function validateMetadataFromMarkdown (metadata) {
  * Validate the metadata object converted from JSON
  * @param {object} metadata
  */
-function validateMetadataFromJSON (metadata) {
+function validateMetadataFromJSON (metadata: any) {
   const result = validate(metadata, {
     type: 'object',
     properties: {
@@ -101,7 +102,7 @@ function validateMetadataFromJSON (metadata) {
     }
   })
   if (result.errors.length) {
-    throw new Error(result.errors.map(error => `\n${error.property} ${error.message}`).join(''))
+    throw new Error(result.errors.map((error: any) => `\n${error.property} ${error.message}`).join(''))
   }
 }
 
@@ -109,7 +110,7 @@ function validateMetadataFromJSON (metadata) {
  * Validate the sub-tasks object
  * @param {object} subTasks
  */
-function validateSubTasks (subTasks) {
+function validateSubTasks (subTasks: any) {
   const result = validate(subTasks, {
     type: 'array',
     items: {
@@ -121,7 +122,7 @@ function validateSubTasks (subTasks) {
     }
   })
   if (result.errors.length) {
-    throw new Error(result.errors.map(error => `\n${error.property} ${error.message}`).join(''))
+    throw new Error(result.errors.map((error: any) => `\n${error.property} ${error.message}`).join(''))
   }
 }
 
@@ -129,7 +130,7 @@ function validateSubTasks (subTasks) {
  * Validate the relations object
  * @param {object} relations
  */
-function validateRelations (relations) {
+function validateRelations (relations: any) {
   const result = validate(relations, {
     type: 'array',
     items: {
@@ -141,7 +142,7 @@ function validateRelations (relations) {
     }
   })
   if (result.errors.length) {
-    throw new Error(result.errors.map(error => `\n${error.property} ${error.message}`).join(''))
+    throw new Error(result.errors.map((error: any) => `\n${error.property} ${error.message}`).join(''))
   }
 }
 
@@ -149,7 +150,7 @@ function validateRelations (relations) {
  * Validate the comments object
  * @param {object} comments
  */
-function validateComments (comments) {
+function validateComments (comments: any) {
   const result = validate(comments, {
     type: 'array',
     items: {
@@ -162,18 +163,16 @@ function validateComments (comments) {
     }
   })
   if (result.errors.length) {
-    throw new Error(result.errors.map(error => `\n${error.property} ${error.message}`).join(''))
+    throw new Error(result.errors.map((error: any) => `\n${error.property} ${error.message}`).join(''))
   }
 }
-
-module.exports = {
 
   /**
    * Convert markdown into a task object
    * @param {string} data
    * @return {object}
    */
-  md2json (data) {
+  export function md2json (data: any): Task {
     let id = ''; let name = ''; let description = ''; let metadata = {}; let subTasks = []; let relations = []; const comments = []
     try {
       // Check data type
@@ -198,7 +197,7 @@ module.exports = {
       let task = null
       try {
         task = parseMarkdown(data)
-      } catch (error) {
+      } catch (error: any) {
         throw new Error(`invalid markdown (${error.message})`)
       }
 
@@ -218,7 +217,7 @@ module.exports = {
       // Metadata will be serialized back to front-matter, this check remains here for backwards compatibility
       if ('Metadata' in task) {
         // Get embedded metadata and make sure it's an object
-        const embeddedMetadata = yaml.parse(task.Metadata.content.trim().replace(/```(yaml|yml)?/g, ''))
+        const embeddedMetadata = yaml.parse((task.Metadata as any).content.trim().replace(/```(yaml|yml)?/g, ''))
         if (typeof embeddedMetadata !== 'object') {
           throw new Error('invalid metadata content')
         }
@@ -268,7 +267,7 @@ module.exports = {
 
       // Check progress value
       if ('progress' in metadata) {
-        const numberValue = parseFloat(metadata.progress)
+        const numberValue = parseFloat(metadata.progress as any)
         if (isNaN(numberValue)) {
           throw new Error('progress value is not numeric')
         }
@@ -278,7 +277,7 @@ module.exports = {
       // Parse sub-tasks
       if ('Sub-tasks' in task) {
         try {
-          subTasks = marked.lexer(task['Sub-tasks'].content)[0].items.map(item => ({
+          subTasks = marked.lexer((task['Sub-tasks'] as any).content)[0].items.map((item: any) => ({
             text: item.text.trim(),
             completed: item.checked || false
           }))
@@ -291,7 +290,7 @@ module.exports = {
       // Parse relations
       if ('Relations' in task) {
         try {
-          relations = marked.lexer(task.Relations.content)[0].items.map(item => {
+          relations = marked.lexer((task.Relations as any).content)[0].items.map((item: any) => {
             const parts = item.tokens[0].tokens[0].text.split(' ')
             return parts.length === 1
               ? {
@@ -321,9 +320,9 @@ module.exports = {
           //   end = data.length;
           // }
           // const parsedComments = marked.lexer(data.slice(start, end).trim())[0].items;
-          const parsedComments = marked.lexer(task.Comments.content)[0].items
+          const parsedComments = marked.lexer((task.Comments as any).content)[0].items
           for (const parsedComment of parsedComments) {
-            const comment = { text: [] }
+            const comment: any = { text: [] }
             const parts = parsedComment.text.split('\n')
             for (const part of parts) {
               if (part.startsWith('date: ')) {
@@ -351,20 +350,20 @@ module.exports = {
       // const descriptionParts = [];
       description = compileDescription(task)
       // description = descriptionParts.join('\n\n');
-    } catch (error) {
+    } catch (error: any) {
       throw new Error(`Unable to parse task: ${error.message}`)
     }
 
     // Assemble task object
-    return { id, name, description, metadata, subTasks, relations, comments }
-  },
+    return { id, name, description, metadata, subTasks, relations, comments } as any
+  }
 
   /**
    * Convert a task object into markdown
    * @param {object} data
    * @return {string}
    */
-  json2md (data) {
+  export function json2md (data: any) {
     const result = []
     try {
       // Check data type
@@ -402,7 +401,7 @@ module.exports = {
         if (data.subTasks.length > 0) {
           result.push(
             '## Sub-tasks',
-            data.subTasks.map(subTask => `- [${subTask.completed ? 'x' : ' '}] ${subTask.text}`).join('\n')
+            data.subTasks.map((subTask: any) => `- [${subTask.completed ? 'x' : ' '}] ${subTask.text}`).join('\n')
           )
         }
       }
@@ -414,7 +413,7 @@ module.exports = {
           result.push(
             '## Relations',
             data.relations.map(
-              relation => `- [${relation.type ? `${relation.type} ` : ''}${relation.task}](${relation.task}.md)`
+              (relation: any) => `- [${relation.type ? `${relation.type} ` : ''}${relation.task}](${relation.task}.md)`
             ).join('\n')
           )
         }
@@ -426,7 +425,7 @@ module.exports = {
         if (data.comments.length > 0) {
           result.push(
             '## Comments',
-            data.comments.map(comment => {
+            data.comments.map((comment: any) => {
               const commentOutput = []
               if ('author' in comment && comment.author) {
                 commentOutput.push(`author: ${comment.author}`)
@@ -440,11 +439,10 @@ module.exports = {
           )
         }
       }
-    } catch (error) {
+    } catch (error: any) {
       throw new Error(`Unable to build task: ${error.message}`)
     }
 
     // Filter empty lines and join into a string
     return `${result.filter(l => !!l).join('\n\n')}\n`
   }
-}

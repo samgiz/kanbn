@@ -1,9 +1,12 @@
-const kanbn = require('./main')
+import { Index } from './model/Index'
+import { Kanbn } from './model/Kanbn'
+import { Task } from './model/Task'
 const term = require('terminal-kit').terminal
 const formatDate = require('dateformat')
-const utility = require('./utility')
+import * as utility from './utility'
 
-module.exports = (() => {
+const kanbn = new Kanbn()
+
   const TASK_SEPARATOR = '\n\n'
 
   /**
@@ -12,7 +15,7 @@ module.exports = (() => {
    * @param {object} task
    * @return {string} The selected task fields
    */
-  function getTaskString (index, task) {
+  function getTaskString (index: Index, task: Task) {
     const taskTemplate = kanbn.getTaskTemplate(index)
     const dateFormat = kanbn.getDateFormat(index)
 
@@ -22,7 +25,7 @@ module.exports = (() => {
       const customFieldNames = index.options.customFields.map(customField => customField.name)
       customFields = Object.fromEntries(utility.zip(
         customFieldNames,
-        customFieldNames.map(customFieldName => task.metadata[customFieldName] || '')
+        customFieldNames.map((customFieldName: string) => (task.metadata as any)[customFieldName] ?? '')
       ))
     }
 
@@ -49,7 +52,7 @@ module.exports = (() => {
     try {
       // eslint-disable-next-line no-new-func
       return new Function(...Object.keys(taskData), 'return `^:' + taskTemplate + '`;')(...Object.values(taskData))
-    } catch (e) {
+    } catch (e: any) {
       utility.error(`Unable to build task template: ${e.message}`)
     }
   }
@@ -60,7 +63,7 @@ module.exports = (() => {
    * @param {string} columnName
    * @return {string} The column heading
    */
-  function getColumnHeading (index, columnName) {
+  function getColumnHeading (index: Index, columnName: string) {
     let heading = '^:'
     if (
       'completedColumns' in index.options &&
@@ -77,7 +80,7 @@ module.exports = (() => {
     return heading + `^+${columnName}^:`
   }
 
-  return {
+  
 
     /**
      * Show the kanbn board
@@ -86,14 +89,14 @@ module.exports = (() => {
      * @param {?string} [view=null] The view to show, or null to show the default view
      * @param {boolean} [json=false] Show JSON output
      */
-    async show (index, tasks, view = null, json = false) {
-      const board = {}
-      let viewSettings = {}
+    export async function show (index: Index, tasks: Task[], view: string | null = null, json: boolean = false) {
+      const board: any = {}
+      let viewSettings: any = {}
       if (view !== null) {
         // Make sure the view exists
         if (
           !('views' in index.options) ||
-          (viewSettings = index.options.views.find(v => v.name === view)) === undefined
+          (viewSettings = (index.options.views as any).find((v: any) => v.name === view)) === undefined
         ) {
           throw new Error(`No view found with name "${view}"`)
         }
@@ -104,7 +107,7 @@ module.exports = (() => {
         viewSettings.columns = Object.keys(index.columns)
           .filter(columnName => (
             !('hiddenColumns' in index.options) ||
-            index.options.hiddenColumns.indexOf(columnName) === -1
+            (index.options.hiddenColumns as any).indexOf(columnName) === -1
           ))
           .map(columnName => ({
             name: columnName,
@@ -123,11 +126,11 @@ module.exports = (() => {
 
       // If a root-level filter is defined, apply it to the tasks
       if ('filters' in viewSettings) {
-        tasks = kanbn.filterAndSortTasks(index, tasks, viewSettings.filters, [])
+        tasks = index.filterAndSortTasks(tasks, viewSettings.filters, [])
       }
 
       // Add columns
-      board.headings = viewSettings.columns.map(column => ({
+      board.headings = viewSettings.columns.map((column: any) => ({
         name: column.name,
         heading: getColumnHeading(index, column.name)
       }))
@@ -137,8 +140,7 @@ module.exports = (() => {
       for (const lane of viewSettings.lanes) {
         const columns = []
         for (const column of viewSettings.columns) {
-          const cellTasks = kanbn.filterAndSortTasks(
-            index,
+          const cellTasks = index.filterAndSortTasks(
             tasks,
             {
               ...('filters' in column ? column.filters : {}),
@@ -161,10 +163,10 @@ module.exports = (() => {
 
       // Prepare table
       const table = []
-      table.push(board.headings.map(heading => heading.heading))
-      board.lanes.forEach(lane => table.push(
+      table.push(board.headings.map((heading: any) => heading.heading))
+      board.lanes.forEach((lane: any) => table.push(
         [lane.name],
-        lane.columns.map(column => column.map(task => getTaskString(index, task)).join(TASK_SEPARATOR))
+        lane.columns.map((column: any) => column.map((task: Task) => getTaskString(index, task)).join(TASK_SEPARATOR))
       ))
 
       // Display as a table
@@ -181,5 +183,3 @@ module.exports = (() => {
         }
       )
     }
-  }
-})()

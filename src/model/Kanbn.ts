@@ -1,20 +1,26 @@
-import { Meridiem } from "../node_modules/chrono-node/dist/index"
-import { filter } from "../node_modules/fuzzy/lib/fuzzy"
-
-const fs = require('fs')
-const path = require('path')
-const glob = require('glob-promise')
-const parseIndex = require('./parse-index')
-const parseTask = require('./parse-task')
-const utility = require('./utility')
-const yaml = require('yamljs')
-const humanizeDuration = require('humanize-duration')
+import * as path from 'path'
+import * as fs from 'fs'
+import * as humanizeDuration from 'humanize-duration'
+import * as parseIndex from '../parse-index'
+import * as parseTask from '../parse-task'
+import * as utility from '../utility'
 const rimraf = require('rimraf')
+import {Config} from './Config'
+import { TaskData, TaskId, addFileExtension, getTaskPath, removeFileExtension, taskWorkloadInCustomPeriod, taskWorkloadInPeriod } from './Task';
+import { Index, IndexOptions, InitialIndexOptions } from './Index'
+import { Task } from './Task'
+const yaml = require('yamljs')
+import { DueData } from './DueData'
+import { Sorter } from './Sorter'
+import { EMPTY_FILTER, Filter } from './Filter'
+const glob = require('glob-promise')
+import { StatusInfo } from './StatusInfo'
+import { Sprint, normaliseDate, getWorkloadAtDate, countActiveTasksAtDate, getTaskEventsAtDate } from './Sprint';
 
-const DEFAULT_FOLDER_NAME = '.kanbn'
-const DEFAULT_INDEX_FILE_NAME = 'index.md'
-const DEFAULT_TASKS_FOLDER_NAME = 'tasks'
-const DEFAULT_ARCHIVE_FOLDER_NAME = 'archive'
+export const DEFAULT_FOLDER_NAME = '.kanbn'
+export const DEFAULT_INDEX_FILE_NAME = 'index.md'
+export const DEFAULT_TASKS_FOLDER_NAME = 'tasks'
+export const DEFAULT_ARCHIVE_FOLDER_NAME = 'archive'
 
 // Date normalisation intervals measured in milliseconds
 const SECOND = 1000
@@ -54,940 +60,8 @@ const defaultInitialiseOptions: InitialIndexOptions = {
   columns: ['Backlog', 'Todo', 'In Progress', 'Done']
 }
 
-interface InitialIndexOptions {
-  name: string
-  description: string
-  options: IndexOptions
-  columns: string[]
-}
-
-interface IndexOptions {
-  startedColumns: string[],
-  completedColumns: string[],
-  customFields: CustomField[],
-  columnSorting: Record<string, Sorter[]>,
-  sprints: Sprint[],
-  defaultTaskWorkload: number,
-  taskWorkloadTags: Record<string, number>,
-}
-
-interface StatusInfo {
-  name: string,
-  untrackedTasks: TaskId[] | null,
-  sprint: any,
-  period: any,
-  assigned: any,
-  dueTasks: any,
-  totalWorkload: any,
-  totalRemainingWorkload: any,
-  columnWorkloads: any,
-  taskWorkloads: any,
-  startedTasks: any,
-  completedTasks: any
-}
-
-interface IndexData {
-  options: any
-}
-
-interface Filter {
-  id: string | string[] | null,
-  name: string | string[] | null,
-  description: string | string[] | null,
-  created: Date | Date[] | null,
-  updated: Date | Date[] | null,
-  started: Date | Date[] | null,
-  completed: Date | Date[] | null,
-  due: Date | Date[] | null,
-  column: string | string[] | null,
-  tag: Tag | Tag[] | null,
-  countTags: number | number[] | null,
-  subTask: string | string[] | null,
-  countSubTasks: number | number[] | null,
-  workload: number | number[] | null,
-  progress: number | number[] | null,
-  assigned: string | string[] | null,
-  relation: string | string[] | null,
-  countRelations: number | number[] | null,
-  comment: string | string[] | null,
-  countComments: number | number[] | null,
-  customFields: Record<string, any>,
-}
-
-const EMPTY_FILTER: Filter = {
-  id: null,
-  name: null,
-  description: null,
-  created: null,
-  updated: null,
-  started: null,
-  completed: null,
-  due: null,
-  column: null,
-  tag: null,
-  countTags: null,
-  subTask: null,
-  countSubTasks: null,
-  workload: null,
-  progress: null,
-  assigned: null,
-  relation: null,
-  countRelations: null,
-  comment: null,
-  countComments: null,
-  customFields: {}
-}
-
-interface Sprint {
-  name: string,
-  description: string,
-  start: Date,
-  number: number
-}
-
-interface Config {
-  [key: string]: any
-}
-
-type TaskId = string
-
-type Tag = string
-
-interface Sorter {
-  field: "id"
-  filter: string | null
-  order: "ascending" | "descending"
-}
-
-type MetadataProperty = keyof TaskMetadata
-
-interface DueData {
-  dueDelta: number,
-  completed: boolean,
-  completedDate: Date | null,
-  dueDate: Date,
-  overdue: boolean,
-  dueMessage: string
-}
-
-interface TaskMetadata {
-  tags: Tag[]
-  column: string | null
-  updated: Date | null
-  created: Date | null
-  started: Date | null
-  completed: Date | null
-  archived: string
-  due: Date | null
-  position: number
-  workload: number
-  progress: number
-  assigned: string
-  customFields: Record<string, CustomField>
-}
-
-interface TaskData {
-  name: string
-  metadata: TaskMetadata
-}
-
-interface Subtask {
-  text: string,
-  completed: boolean
-}
-
-interface Relation {
-  type: string,
-  task: string
-}
-
-interface Comment {
-  author: string,
-  text: string
-}
-
-
-interface Task {
-  id: TaskId
-  metadata: TaskMetadata
-  subTasks: Subtask[]
-  relations: Relation[]
-  comments: Comment[]
-  created: Date
-  updated: Date
-  name: string
-  description: string
-  workload: number
-  started: Date
-  completed: Date
-  archived: string
-  due: Date
-  column: string | null
-  position: number
-  tags: Tag[]
-  progress: number
-  remainingWorkload: number
-  dueData: DueData
-}
-
-interface Column {
-
-}
-
-interface CustomField {
-  name: string,
-  type: string,
-  updateDate: string | null,
-  value: any
-}
-
-interface Index {
-  name: string,
-  description: string
-  columns: Record<string, TaskId[]>,
-  options: IndexOptions
-}
-
-/**
- * Check if a file or folder exists
- * @param {string} path
- * @return {Promise<boolean>} True if the file or folder exists
- */
-async function exists (path: string) {
-  try {
-    await fs.promises.access(path, fs.constants.R_OK | fs.constants.W_OK)
-  } catch (error) {
-    return false
-  }
-  return true
-}
-
-/**
- * Get a list of all tracked task ids
- * @param {object} index The index object
- * @param {?string} [columnName=null] The optional column name to filter tasks by
- * @return {Set} A set of task ids appearing in the index
- */
-function getTrackedTaskIds (index: Index, columnName: string | null = null) {
-  return new Set(
-    columnName
-      ? index.columns[columnName]
-      : Object.keys(index.columns)
-        .map((columnName) => index.columns[columnName])
-        .flat()
-  )
-}
-
-/**
-   * Get a task path from the id
-   * @param {string} tasksPath The path to the tasks folder
-   * @param {string} taskId The task id
-   * @return {string} The task path
-   */
-function getTaskPath (tasksPath: string, taskId: string): string {
-  return path.join(tasksPath, addFileExtension(taskId))
-}
-
-/**
- * Add the file extension to an id if it doesn't already have one
- * @param {string} taskId The task id
- * @return {string} The task id with .md extension
- */
-function addFileExtension (taskId: string) {
-  if (!/\.md$/.test(taskId)) {
-    return `${taskId}.md`
-  }
-  return taskId
-}
-
-/**
- * Remove the file extension from an id if it has one
- * @param {string} taskId The task id
- * @return {string} The task id without .md extension
- */
-function removeFileExtension (taskId: string): string {
-  if (/\.md$/.test(taskId)) {
-    return taskId.slice(0, taskId.length - '.md'.length)
-  }
-  return taskId
-}
-
-/**
- * Check if a task exists in the index
- * @param {object} index The index object
- * @param {string} taskId The task id to search for
- * @return {boolean} True if the task exists in the index
- */
-function taskInIndex (index: Index, taskId: string) {
-  for (const columnName in index.columns) {
-    if (index.columns[columnName].indexOf(taskId) !== -1) {
-      return true
-    }
-  }
-  return false
-}
-
-/**
- * Find a task in the index and returns the column that it's in
- * @param {object} index The index data
- * @param {string} taskId The task id to search for
- * @return {?string} The column name for the specified task, or null if it wasn't found
- */
-function findTaskColumn (index: Index, taskId: string): string | null {
-  for (const columnName in index.columns) {
-    if (index.columns[columnName].indexOf(taskId) !== -1) {
-      return columnName
-    }
-  }
-  return null
-}
-
-/**
- * Add a task id to the specified column in the index
- * @param {object} index The index object
- * @param {string} taskId The task id to add
- * @param {string} columnName The column to add the task to
- * @param {?number} [position=null] The position in the column to move the task to, or last position if null
- * @return {object} The modified index object
- */
-function addTaskToIndex (index: Index, taskId: string, columnName: string, position: number | null = null) {
-  if (position === null) {
-    index.columns[columnName].push(taskId)
-  } else {
-    index.columns[columnName].splice(position, 0, taskId)
-  }
-  return index
-}
-
-/**
- * Remove all instances of a task id from the index
- * @param {object} index The index object
- * @param {string} taskId The task id to remove
- * @return {object} The modified index object
- */
-function removeTaskFromIndex (index: Index, taskId: string) {
-  for (const columnName in index.columns) {
-    index.columns[columnName] = index.columns[columnName].filter((t: string) => t !== taskId)
-  }
-  return index
-}
-
-/**
- * Rename all instances of a task id in the index
- * @param {object} index The index object
- * @param {string} taskId The task id to rename
- * @param {string} newTaskId The new task id
- * @return {object} The modified index object
- */
-function renameTaskInIndex (index: Index, taskId: string, newTaskId: string) {
-  for (const columnName in index.columns) {
-    index.columns[columnName] = index.columns[columnName].map((t: string) => (t === taskId ? newTaskId : t))
-  }
-  return index
-}
-
-/**
- * Check if a task is completed
- * @param {object} index
- * @param {object} task
- * @return {boolean} True if the task is in a completed column or has a completed date
- */
-function taskCompleted (index: Index, task: Task) {
-  return (
-    'completed' in task.metadata ||
-    ('completedColumns' in index.options &&
-      index.options.completedColumns.indexOf(findTaskColumn(index, task.id) ?? '') !== -1)
-  )
-}
-
-/**
- * Sort a column in the index
- * @param {object} index The index object
- * @param {object[]} tasks The tasks in the index
- * @param {string} columnName The column to sort
- * @param {object[]} sorters A list of sorter objects
- * @return {object} The modified index object
- */
-function sortColumnInIndex (index: Index, tasks: Task[], columnName: string, sorters: Sorter[]) {
-  // Get a list of tasks in the target column and add computed fields
-  let sortableTasks: any = tasks.map((task) => ({
-    ...task,
-    ...task.metadata,
-    created: 'created' in task.metadata ? task.metadata.created : '',
-    updated: 'updated' in task.metadata ? task.metadata.updated : '',
-    started: 'started' in task.metadata ? task.metadata.started : '',
-    completed: 'completed' in task.metadata ? task.metadata.completed : '',
-    due: 'due' in task.metadata ? task.metadata.due : '',
-    assigned: 'assigned' in task.metadata ? task.metadata.assigned : '',
-    countSubTasks: task.subTasks.length,
-    subTasks: task.subTasks.map((subTask) => `[${subTask.completed ? 'x' : ''}] ${subTask.text}`).join('\n'),
-    countTags: 'tags' in task.metadata ? task.metadata.tags.length : 0,
-    tags: 'tags' in task.metadata ? task.metadata.tags.join('\n') : '',
-    countRelations: task.relations.length,
-    relations: task.relations.map((relation) => `${relation.type} ${relation.task}`).join('\n'),
-    countComments: task.comments.length,
-    comments: task.comments.map((comment) => `${comment.author} ${comment.text}`).join('\n'),
-    workload: taskWorkload(index, task),
-    progress: taskProgress(index, task)
-  }))
-
-  // Sort the list of tasks
-  sortableTasks = sortTasks(sortableTasks, sorters)
-
-  // Save the list of tasks back to the index
-  index.columns[columnName] = sortableTasks.map((task: any) => task.id)
-  return index
-}
-
-/**
- * Sort a list of tasks
- * @param {object[]} tasks
- * @param {object[]} sorters
- * @return {object[]} The sorted tasks
- */
-function sortTasks (tasks: Task[], sorters: Sorter[]) {
-  tasks.sort((a, b) => {
-    let compareA, compareB
-    for (const sorter of sorters) {
-      compareA = a[sorter.field]
-      compareB = b[sorter.field]
-      if (sorter.filter) {
-        compareA = sortFilter(compareA, sorter.filter)
-        compareB = sortFilter(compareB, sorter.filter)
-      }
-      if (compareA === compareB) {
-        continue
-      }
-      return sorter.order === 'descending' ? compareValues(compareB, compareA) : compareValues(compareA, compareB)
-    }
-    return 0
-  })
-  return tasks
-}
-
-/**
- * Transform a value using a sort filter regular expression
- * @param {string} value
- * @param {string} filter
- * @return {string} The transformed value
- */
-function sortFilter (value: string, filter: string) {
-  // Filter regex is global and case-insensitive
-  const matches = [...value.matchAll(new RegExp(filter, 'gi'))]
-  const result = matches.map((match) => {
-    // If the matched string has named capturing groups, concatenate their contents
-    if (match.groups) {
-      return Object.values(match.groups).join('')
-    }
-
-    // If the matched string has non-named capturing groups, use the contents of the first group
-    if (match[1]) {
-      return match[1]
-    }
-
-    // Otherwise use the matched string
-    return match[0]
-  })
-  return result.join('')
-}
-
-/**
- * Compare two values (supports string, date and number values)
- * @param {any} a
- * @param {any} b
- * @return {number} A positive value if a > b, negative if a < b, otherwise 0
- */
-function compareValues (a: any, b: any) {
-  if (a === undefined && b === undefined) {
-    return 0
-  }
-  a = utility.coerceUndefined(a, typeof b)
-  b = utility.coerceUndefined(b, typeof a)
-  if (typeof a === 'string' && typeof b === 'string') {
-    return a.localeCompare(b, undefined, { sensitivity: 'accent' })
-  }
-  return a - b
-}
-
-/**
- * Filter a list of tasks using a filters object containing field names and filter values
- * @param {object} index
- * @param {object[]}} tasks
- * @param {object} filters
- */
-function filterTasks (index: Index, tasks: Task[], filters: Filter) {
-  return tasks.filter((task) => {
-    // Get task id and column
-    const taskId = utility.getTaskId(task.name)
-    const column = findTaskColumn(index, taskId)
-
-    // If no filters are defined, return all tasks
-    if (Object.keys(filters).length === 0) {
-      return true
-    }
-
-    // Apply filters
-    let result = true
-
-    // Id
-    if (filters.id && !stringFilter(filters.id, task.id)) {
-      result = false
-    }
-
-    // Name
-    if (filters.name && !stringFilter(filters.name, task.name)) {
-      result = false
-    }
-
-    // Description
-    if (filters.description && !stringFilter(filters.description, task.description)) {
-      result = false
-    }
-
-    // Column
-    if (filters.column && !stringFilter(filters.column, column ?? '')) {
-      result = false
-    }
-
-    // Created date
-    if (
-      filters.created &&
-      (task.metadata.created === null || !dateFilter(filters.created, task.metadata.created))
-    ) {
-      result = false
-    }
-
-    // Updated date
-    if (
-      filters.updated &&
-      (!task.metadata.updated || !dateFilter(filters.updated, task.metadata.updated))
-    ) {
-      result = false
-    }
-
-    // Started date
-    if (
-      filters.started &&
-      (!task.metadata.started || !dateFilter(filters.started, task.metadata.started))
-    ) {
-      result = false
-    }
-
-    // Completed date
-    if (
-      filters.completed &&
-      (!task.metadata.completed || !dateFilter(filters.completed, task.metadata.completed))
-    ) {
-      result = false
-    }
-
-    // Due
-    if (filters.due && (!task.metadata.due || !dateFilter(filters.due, task.metadata.due))) {
-      result = false
-    }
-
-    // Workload
-    if (filters.workload && !numberFilter(filters.workload, taskWorkload(index, task))) {
-      result = false
-    }
-
-    // Progress
-    if (filters.progress && !numberFilter(filters.progress, taskProgress(index, task))) {
-      result = false
-    }
-
-    // Assigned
-    if (
-      filters.assigned &&
-      !stringFilter(filters.assigned, task.metadata.assigned ? task.metadata.assigned : '')
-    ) {
-      result = false
-    }
-
-    // Sub-tasks
-    if (
-      filters.subTask &&
-      !stringFilter(
-        filters.subTask,
-        task.subTasks.map((subTask) => `[${subTask.completed ? 'x' : ' '}] ${subTask.text}`).join('\n')
-      )
-    ) {
-      result = false
-    }
-
-    // Count sub-tasks
-    if (filters.countSubTasks && !numberFilter(filters.countSubTasks, task.subTasks.length)) {
-      result = false
-    }
-
-    // Tag
-    if (filters.tag && !stringFilter(filters.tag, task.metadata.tags.join('\n'))) {
-      result = false
-    }
-
-    // Count tags
-    if (filters.countTags && !numberFilter(filters.countTags, task.tags.length)) {
-      result = false
-    }
-
-    // Relation
-    if (
-      filters.relation &&
-      !stringFilter(
-        filters.relation,
-        task.relations.map((relation) => `${relation.type} ${relation.task}`).join('\n')
-      )
-    ) {
-      result = false
-    }
-
-    // Count relations
-    if (filters.countRelations && !numberFilter(filters.countRelations, task.relations.length)) {
-      result = false
-    }
-
-    // Comments
-    if (
-      filters.comment &&
-      !stringFilter(filters.comment, task.comments.map((comment) => `${comment.author} ${comment.text}`).join('\n'))
-    ) {
-      result = false
-    }
-
-    // Count comments
-    if (filters.countComments && !numberFilter(filters.countComments, task.comments.length)) {
-      result = false
-    }
-
-    // Custom metadata properties
-    // if ('customFields' in index.options.customFields) {
-      for (const customField of index.options.customFields) {
-        if (customField.name in filters) {
-          if (!(customField.name in task.metadata.customFields)) {
-            result = false
-          } else {
-            switch (customField.type) {
-              case 'boolean':
-                if (task.metadata.customFields[customField.name].value !== filters.customFields[customField.name]) {
-                  result = false
-                }
-                break
-              case 'number':
-                if (!numberFilter(filters.customFields[customField.name], task.metadata.customFields[customField.name].value)) {
-                  result = false
-                }
-                break
-              case 'string':
-                if (!stringFilter(filters.customFields[customField.name], task.metadata.customFields[customField.name].value)) {
-                  result = false
-                }
-                break
-              case 'date':
-                if (!dateFilter(filters.customFields[customField.name], task.metadata.customFields[customField.name].value)) {
-                  result = false
-                }
-                break
-              default:
-                break
-            }
-          }
-        }
-      }
-    // }
-    return result
-  })
-}
-
-/**
- * Check if the input string matches the filter regex
- * @param {string|string[]} filter A regular expression or array of regular expressions
- * @param {string} input The string to match against
- * @return {boolean} True if the input matches the string filter
- */
-function stringFilter (filter: string|string[], input: string) {
-  if (Array.isArray(filter)) {
-    filter = filter.join('|')
-  }
-  return new RegExp(filter, 'i').test(input)
-}
-
-/**
- * Check if the input date matches a date (ignore time part), or if multiple dates are passed in, check if the
- * input date is between the earliest and latest dates
- * @param {Date|Date[]} dates A date or list of dates to check against
- * @param {Date} input The input date to match against
- * @return {boolean} True if the input matches the date filter
- */
-function dateFilter (dates: Date|Date[], input: Date) {
-  const dateArray: Date[] = utility.arrayArg(dates)
-  if (dateArray.length === 1) {
-    return utility.compareDates(input, dateArray[0])
-  }
-  const earliest = new Date(Math.min(...dateArray.map((date) => date.valueOf())))
-  const latest = new Date(Math.max(...dateArray.map((date) => date.valueOf())))
-  return input >= earliest && input <= latest
-}
-
-/**
- * Check if the input matches a number, or if multiple numbers are passed in, check if the input is between the
- * minimum and maximum numbers
- * @param {number|number[]} filter A filter number or array of filter numbers
- * @param {number} input The number to match against
- * @return {boolean} True if the input matches the number filter
- */
-function numberFilter (filter: number | number[], input: number) {
-  const filterArray: number[] = utility.arrayArg(filter)
-  return input >= Math.min(...filterArray) && input <= Math.max(...filterArray)
-}
-
-/**
- * Calculate task workload
- * @param {object} index The index object
- * @param {object} task The task object
- * @return {number} The task workload
- */
-function taskWorkload (index: Index, task: Task) {
-  const defaultTaskWorkload = index.options.defaultTaskWorkload
-  const taskWorkloadTags = index.options.taskWorkloadTags
-  let workload = 0
-  let hasWorkloadTags = false
-  if ('tags' in task.metadata) {
-    for (const workloadTag of Object.keys(taskWorkloadTags)) {
-      if (task.metadata.tags.indexOf(workloadTag) !== -1) {
-        workload += taskWorkloadTags[workloadTag]
-        hasWorkloadTags = true
-      }
-    }
-  }
-  if (!hasWorkloadTags) {
-    workload = defaultTaskWorkload
-  }
-  return workload
-}
-
-/**
- * Get task progress amount
- * @param {object} index
- * @param {object} task
- * @return {number} Task progress
- */
-function taskProgress (index: Index, task: Task) {
-  if (taskCompleted(index, task)) {
-    return 1
-  }
-  return task.metadata.progress
-}
-
-/**
- * Calculate task workload statistics between a start and end date
- * @param {object[]} tasks
- * @param {string} metadataProperty
- * @param {Date} start
- * @param {Date} end
- * @return {object} A statistics object
- */
-function taskWorkloadInPeriod (tasks: Task[], metadataProperty: MetadataProperty, start: Date, end: Date) {
-  const filteredTasks = tasks.filter(
-    (task) =>
-      (task.metadata[metadataProperty] ?? new Date()) >= start &&
-      (task.metadata[metadataProperty] ?? new Date()) <= end
-  )
-  return {
-    tasks: filteredTasks.map((task) => ({
-      id: task.id,
-      column: task.column,
-      workload: task.workload
-    })),
-    workload: filteredTasks.reduce((a, task) => a + task.workload, 0)
-  }
-}
-
-function taskWorkloadInCustomPeriod (tasks: Task[], customField: string, start: Date, end: Date) {
-  const filteredTasks = tasks.filter(
-    (task) => {
-      return customField in task.metadata.customFields && 
-        task.metadata.customFields[customField].value >= start &&
-        task.metadata.customFields[customField].value <= end
-    }
-  )
-  return {
-    tasks: filteredTasks.map((task) => ({
-      id: task.id,
-      column: task.column,
-      workload: task.workload
-    })),
-    workload: filteredTasks.reduce((a, task) => a + task.workload, 0)
-  }
-}
-
-/**
- * Get a list of tasks that were started before and/or completed after a date
- * @param {object[]} tasks
- * @param {Date} date
- * @return {object[]} A filtered list of tasks
- */
-function getActiveTasksAtDate (tasks: Task[], date: Date) {
-  return tasks.filter((task) => (
-    (task.started !== null && task.started <= date) &&
-    (task.completed === null || task.completed > date)
-  ))
-}
-
-/**
- * Calculate the total workload at a specific date
- * @param {object[]} tasks
- * @param {Date} date
- * @return {number} The total workload at the specified date
- */
-function getWorkloadAtDate (tasks: Task[], date: Date) {
-  return getActiveTasksAtDate(tasks, date).reduce((a, task) => (a += task.workload), 0)
-}
-
-/**
- * Get the number of tasks that were active at a specific date
- * @param {object[]} tasks
- * @param {Date} date
- * @return {number} The total number of active tasks at the specified date
- */
-function countActiveTasksAtDate (tasks: Task[], date: Date) {
-  return getActiveTasksAtDate(tasks, date).length
-}
-
-/**
- * Get a list of tasks that were started or completed on a specific date
- * @param {object[]} tasks
- * @param {Date} date
- * @return {object[]} A list of event objects, with event type and task id
- */
-function getTaskEventsAtDate (tasks: Task[], date: Date) {
-  return [
-    ...tasks
-      .filter((task) => (task.created ? task.created.getTime() : 0) === date.getTime())
-      .map((task) => ({
-        eventType: 'created',
-        task
-      })),
-    ...tasks
-      .filter((task) => (task.started ? task.started.getTime() : 0) === date.getTime())
-      .map((task) => ({
-        eventType: 'started',
-        task
-      })),
-    ...tasks
-      .filter((task) => (task.completed ? task.completed.getTime() : 0) === date.getTime())
-      .map((task) => ({
-        eventType: 'completed',
-        task
-      }))
-  ]
-}
-
-/**
- * Quantize a burndown chart date to 1-hour resolution
- * @param {Date} date
- * @param {string} resolution One of 'days', 'hours', 'minutes', 'seconds'
- * @return {Date} The quantized dates
- */
-function normaliseDate (date: Date, resolution = 'minutes') {
-  const result = new Date(date.getTime())
-  switch (resolution) {
-    case 'days':
-      result.setHours(0)
-    // eslint-disable-next-line no-fallthrough
-    case 'hours':
-      result.setMinutes(0)
-    // eslint-disable-next-line no-fallthrough
-    case 'minutes':
-      result.setSeconds(0)
-    // eslint-disable-next-line no-fallthrough
-    case 'seconds':
-      result.setMilliseconds(0)
-    // eslint-disable-next-line no-fallthrough
-    default:
-      break
-  }
-  return result
-}
-
-/**
- * If a task's column is linked in the index to a custom field with type date, update the custom field's value
- * in the task data with the current date
- * @param {object} index
- * @param {object} taskData
- * @param {string} columnName
- * @return {object} The updated task data
- */
-function updateColumnLinkedCustomFields (index: Index, taskData: TaskData, columnName: string) {
-  // Update built-in column-linked metadata properties first (started and completed dates)
-  taskData = updateColumnLinkedCustomField(index, taskData, columnName, 'completed', 'once')
-  taskData = updateColumnLinkedCustomField(index, taskData, columnName, 'started', 'once')
-
-  // Update column-linked custom fields
-  // if ('customFields' in index.options) {
-    for (const customField of index.options.customFields) {
-      if (customField.type === 'date') {
-        taskData = updateColumnLinkedCustomField(
-          index,
-          taskData,
-          columnName,
-          customField.name,
-          customField.updateDate || 'none'
-        )
-      }
-    }
-  // }
-  return taskData
-}
-
-/**
- * If index options contains a list of columns linked to a custom field name and a task's column matches one
- * of the columns in this list, set the task's custom field value to the current date depending on criteria:
- * - if 'once', update the value only if it's not currently set
- * - if 'always', update the value regardless
- * - otherwise, don't update the value
- * @param {object} index
- * @param {object} taskData
- * @param {string} columnName
- * @param {string} fieldName
- * @param {string} [updateCriteria='none']
- */
-function updateColumnLinkedCustomField (index: Index, taskData: TaskData, columnName: string, fieldName: any, updateCriteria: string = 'none') {
-  const columnList: string = `${fieldName}Columns`
-  const columnListIndex = index.options.customFields.findIndex((customField) => customField.name === columnList)
-  if (columnListIndex != -1 && index.options.customFields[columnListIndex].value.indexOf(columnName) !== -1) {
-    switch (updateCriteria) {
-      case 'always': {
-        // const index = taskData.metadata.customFields.findIndex((customField) => customField.name === fieldName)
-        const newValue = {
-          name: fieldName,
-          value: new Date(),
-          type: 'date',
-          updateDate: null
-        }
-        taskData.metadata.customFields[fieldName] = newValue
-        break
-      }
-      case 'once': {
-        if (!(fieldName in taskData.metadata.customFields)) {
-          const newValue = {
-            name: fieldName,
-            value: new Date(),
-            type: 'date',
-            updateDate: null
-          }
-          taskData.metadata.customFields[fieldName] = newValue
-        }
-        break
-      }
-        
-      default:
-        break
-    }
-  }
-  return taskData
-}
-
 export class Kanbn {
+  public index: Index | null = null
   ROOT = process.cwd()
   CONFIG_YAML = path.join(this.ROOT, 'kanbn.yml')
   CONFIG_JSON = path.join(this.ROOT, 'kanbn.json')
@@ -1008,14 +82,14 @@ export class Kanbn {
    * @returns {Promise<boolean>} True if a config file exists
    */
   async configExists () {
-    return await exists(this.CONFIG_YAML) || await exists(this.CONFIG_JSON)
+    return await fs.existsSync(this.CONFIG_YAML) || await fs.existsSync(this.CONFIG_JSON)
   }
 
   /**
    * Save configuration data to a separate config file
    */
   async saveConfig (config: Config) {
-    if (await exists(this.CONFIG_YAML)) {
+    if (fs.existsSync(this.CONFIG_YAML)) {
       await fs.promises.writeFile(this.CONFIG_YAML, yaml.stringify(config, 4, 2))
     } else {
       await fs.promises.writeFile(this.CONFIG_JSON, JSON.stringify(config, null, 4))
@@ -1029,13 +103,13 @@ export class Kanbn {
   async getConfig (): Promise<Config|null> {
     if (this.configMemo === null) {
       let config = null
-      if (await exists(this.CONFIG_YAML)) {
+      if (fs.existsSync(this.CONFIG_YAML)) {
         try {
           config = yaml.load(this.CONFIG_YAML)
         } catch (error: any) {
           throw new Error(`Couldn't load config file: ${error.message}`)
         }
-      } else if (await exists(this.CONFIG_JSON)) {
+      } else if (await fs.existsSync(this.CONFIG_JSON)) {
         try {
           config = JSON.parse(await fs.promises.readFile(this.CONFIG_JSON, { encoding: 'utf-8' }))
         } catch (error: any) {
@@ -1133,7 +207,27 @@ export class Kanbn {
   async getArchiveFolderPath () {
     return path.join(await this.getMainFolder(), await this.getArchiveFolderName())
   }
+/**
+ * Load the index file and parse it to an object
+ * @return {Promise<object>} The index object
+ */
+async loadIndex (): Promise<Index> {
+  let indexData = ''
+  try {
+    indexData = await fs.promises.readFile(await this.getIndexPath(), { encoding: 'utf-8' })
+  } catch (error: any) {
+    throw new Error(`Couldn't access index file: ${error.message}`)
+  }
+  const index: Index = parseIndex.md2json(indexData)
 
+  // If configuration settings exist in a separate config file, merge them with index options
+  const config = await this.getConfig()
+  if (config !== null) {
+    index.options = { ...index.options, ...config }
+  }
+  this.index = index
+  return index
+}
   /**
    * Get the index as an object
    * @return {Promise<index>} The index
@@ -1146,6 +240,8 @@ export class Kanbn {
 
     return this.loadIndex()
   }
+
+  
 
   /**
    * Get a task as an object
@@ -1163,13 +259,13 @@ export class Kanbn {
    * @param {task} task The task object
    * @return {task} The hydrated task
    */
-  hydrateTask (index: Index, task: Task) {
-    const completed = taskCompleted(index, task)
-    task.column = findTaskColumn(index, task.id)
-    task.workload = taskWorkload(index, task)
+  public hydrateTask (index: Index, task: Task) {
+    const completed = index.taskCompleted(task)
+    task.column = index.findTaskColumn(task.id)
+    task.workload = index.taskWorkload(task)
 
     // Add progress information
-    task.progress = taskProgress(index, task)
+    task.progress = index.taskProgress(task)
     task.remainingWorkload = Math.ceil(task.workload * (1 - task.progress))
 
     // Add due information
@@ -1221,67 +317,6 @@ export class Kanbn {
   }
 
   /**
-   * Return a filtered and sorted list of tasks
-   * @param {index} index The index object
-   * @param {task[]} tasks A list of task objects
-   * @param {object} filters A list of task filters
-   * @param {object[]} sorters A list of task sorters
-   * @return {object[]} A filtered and sorted list of tasks
-   */
-  filterAndSortTasks (index: Index, tasks: Task[], filters: Filter, sorters: Sorter[]) {
-    return sortTasks(filterTasks(index, tasks, filters), sorters)
-  }
-
-  /**
-   * Overwrite the index file with the specified data
-   * @param {object} indexData Index data to save
-   */
-  async saveIndex (indexData: Index) {
-    // Apply column sorting if any sorters are defined in options
-    if ('columnSorting' in indexData.options && Object.keys(indexData.options.columnSorting).length) {
-      for (const columnName in indexData.options.columnSorting) {
-        indexData = sortColumnInIndex(
-          indexData,
-          await this.loadAllTrackedTasks(indexData, columnName),
-          columnName,
-          indexData.options.columnSorting[columnName]
-        )
-      }
-    }
-
-    // If there is a separate config file, save options to this file
-    let ignoreOptions = false
-    if (await this.configExists()) {
-      await this.saveConfig(indexData.options)
-      ignoreOptions = true
-    }
-
-    // Save index
-    await fs.promises.writeFile(await this.getIndexPath(), parseIndex.json2md(indexData, ignoreOptions))
-  }
-
-  /**
-   * Load the index file and parse it to an object
-   * @return {Promise<object>} The index object
-   */
-  async loadIndex (): Promise<Index> {
-    let indexData = ''
-    try {
-      indexData = await fs.promises.readFile(await this.getIndexPath(), { encoding: 'utf-8' })
-    } catch (error: any) {
-      throw new Error(`Couldn't access index file: ${error.message}`)
-    }
-    const index = parseIndex.md2json(indexData)
-
-    // If configuration settings exist in a separate config file, merge them with index options
-    const config = await this.getConfig()
-    if (config !== null) {
-      index.options = { ...index.options, ...config }
-    }
-    return index
-  }
-
-  /**
    * Overwrite a task file with the specified data
    * @param {string} path The task path
    * @param {object} taskData The task data
@@ -1295,7 +330,7 @@ export class Kanbn {
    * @param {string} taskId The task id
    * @return {Promise<object>} The task object
    */
-  async loadTask (taskId: TaskId) {
+  async loadTask (taskId: TaskId): Promise<Task> {
     const taskPath = path.join(await this.getTaskFolderPath(), addFileExtension(taskId))
     let taskData = ''
     try {
@@ -1303,7 +338,7 @@ export class Kanbn {
     } catch (error: any) {
       throw new Error(`Couldn't access task file: ${error.message}`)
     }
-    return parseTask.md2json(taskData)
+    return parseTask.md2json(taskData) as Task
   }
 
   /**
@@ -1312,9 +347,9 @@ export class Kanbn {
    * @param {?string} [columnName=null] The optional column name to filter tasks by
    * @return {Promise<object[]>} All tracked tasks
    */
-  async loadAllTrackedTasks (index: Index, columnName: null | string = null) {
-    const result = []
-    const trackedTasks = getTrackedTaskIds(index, columnName)
+  async loadAllTrackedTasks (index: Index, columnName: null | string = null): Promise<Task[]> {
+    const result: Task[] = []
+    const trackedTasks = index.getTrackedTaskIds(columnName)
     for (const taskId of trackedTasks) {
       result.push(await this.loadTask(taskId))
     }
@@ -1360,7 +395,7 @@ export class Kanbn {
    * @return {Promise<boolean>} True if the current working directory has been initialised, otherwise false
    */
   async initialised () {
-    return await exists(await this.getIndexPath())
+    return fs.existsSync(await this.getIndexPath())
   }
 
   /**
@@ -1372,30 +407,31 @@ export class Kanbn {
     const mainFolder = await this.getMainFolder()
 
     // Create main folder if it doesn't already exist
-    if (!(await exists(mainFolder))) {
+    if (!fs.existsSync(mainFolder)) {
       await fs.promises.mkdir(mainFolder, { recursive: true })
     }
 
     // Create tasks folder if it doesn't already exist
     const taskFolder = await this.getTaskFolderPath()
-    if (!(await exists(taskFolder))) {
+    if (fs.existsSync(taskFolder)) {
       await fs.promises.mkdir(taskFolder, { recursive: true })
     }
 
     // Create index if one doesn't already exist
     let index: Index
-    if (!(await exists(await this.getIndexPath()))) {
+    if (fs.existsSync(await this.getIndexPath())) {
       // If config already exists in a separate file, merge it into the options
       const config = await this.getConfig()
 
       // Create initial options
-      const opts = Object.assign({}, defaultInitialiseOptions, options)
-      index = {
-        name: opts.name,
-        description: opts.description,
-        options: Object.assign({}, opts.options, config || {}),
-        columns: Object.fromEntries(opts.columns.map((columnName) => [columnName, []]))
-      }
+      const opts: any = Object.assign({}, defaultInitialiseOptions, options)
+      index = new Index(opts.name, opts.descripton, Object.assign({}, opts.options, config || {}), Object.fromEntries(opts.columns.map((columnName: string) => [columnName, []])))
+      // {
+      //   name: opts.name,
+      //   description: opts.description,
+      //   options: Object.assign({}, opts.options, config || {}),
+      //   columns: Object.fromEntries(opts.columns.map((columnName) => [columnName, []]))
+      // }
 
       // Otherwise, if index already exists and we have specified new settings, re-write the index file
     } else {
@@ -1417,6 +453,33 @@ export class Kanbn {
   }
 
   /**
+   * Overwrite the index file with the specified data
+   * @param {object} indexData Index data to save
+   */
+  async saveIndex (indexData: Index) {
+    // Apply column sorting if any sorters are defined in options
+    if ('columnSorting' in indexData.options && Object.keys(indexData.options.columnSorting).length) {
+      for (const columnName in indexData.options.columnSorting) {
+        indexData = indexData.sortColumn(
+          await this.loadAllTrackedTasks(indexData, columnName),
+          columnName,
+          indexData.options.columnSorting[columnName]
+        )
+      }
+    }
+
+    // If there is a separate config file, save options to this file
+    let ignoreOptions = false
+    if (await this.configExists()) {
+      await this.saveConfig(indexData.options)
+      ignoreOptions = true
+    }
+
+    // Save index
+    await fs.promises.writeFile(await this.getIndexPath(), parseIndex.json2md(indexData, ignoreOptions))
+  }
+
+  /**
    * Check if a task file exists and is in the index, otherwise throw an error
    * @param {string} taskId The task id to check
    */
@@ -1427,13 +490,13 @@ export class Kanbn {
     }
 
     // Check if the task file exists
-    if (!(await exists(getTaskPath(await this.getTaskFolderPath(), taskId)))) {
+    if (!fs.existsSync(getTaskPath(await this.getTaskFolderPath(), taskId))) {
       throw new Error(`No task file found with id "${taskId}"`)
     }
 
     // Check that the task is indexed
     const index = await this.loadIndex()
-    if (!taskInIndex(index, taskId)) {
+    if (!index.contains(taskId)) {
       throw new Error(`No task with id "${taskId}" found in the index`)
     }
   }
@@ -1450,18 +513,18 @@ export class Kanbn {
     }
 
     // Check if the task file exists
-    if (!(await exists(getTaskPath(await this.getTaskFolderPath(), taskId)))) {
+    if (!fs.existsSync(getTaskPath(await this.getTaskFolderPath(), taskId))) {
       throw new Error(`No task file found with id "${taskId}"`)
     }
 
     // Check that the task is indexed
     const index = await this.loadIndex()
-    if (!taskInIndex(index, taskId)) {
+    if (!index.contains(taskId)) {
       throw new Error(`No task with id "${taskId}" found in the index`)
     }
 
     // Find which column the task is in
-    return findTaskColumn(index, taskId)
+    return index.findTaskColumn(taskId)
   }
 
   /**
@@ -1470,7 +533,7 @@ export class Kanbn {
    * @param {string} columnName The name of the column to add the task to
    * @return {Promise<string>} The id of the task that was created
    */
-  async createTask (taskData:TaskData, columnName:string) {
+  async createTask (taskData: Task, columnName:string) {
     // Check if this folder has been initialised
     if (!(await this.initialised())) {
       throw new Error('Not initialised in this folder')
@@ -1484,7 +547,7 @@ export class Kanbn {
     // Make sure a task doesn't already exist with the same name
     const taskId = utility.getTaskId(taskData.name)
     const taskPath = getTaskPath(await this.getTaskFolderPath(), taskId)
-    if (await exists(taskPath)) {
+    if (fs.existsSync(taskPath)) {
       throw new Error(`A task with id "${taskId}" already exists`)
     }
 
@@ -1495,7 +558,7 @@ export class Kanbn {
     }
 
     // Check that a task with the same id isn't already indexed
-    if (taskInIndex(index, taskId)) {
+    if (index.contains(taskId)) {
       throw new Error(`A task with id "${taskId}" is already in the index`)
     }
 
@@ -1503,11 +566,11 @@ export class Kanbn {
     taskData.metadata.created = new Date()
 
     // Update task metadata dates
-    taskData = updateColumnLinkedCustomFields(index, taskData, columnName)
+    taskData = index.updateColumnLinkedCustomFields(taskData, columnName)
     await this.saveTask(taskPath, taskData)
 
     // Add the task to the index
-    index = addTaskToIndex(index, taskId, columnName)
+    index = index.addTask(taskId, columnName)
     await this.saveIndex(index)
     return taskId
   }
@@ -1526,7 +589,7 @@ export class Kanbn {
     taskId = removeFileExtension(taskId)
 
     // Make sure the task file exists
-    if (!(await exists(getTaskPath(await this.getTaskFolderPath(), taskId)))) {
+    if (!fs.existsSync(getTaskPath(await this.getTaskFolderPath(), taskId))) {
       throw new Error(`No task file found with id "${taskId}"`)
     }
 
@@ -1537,7 +600,7 @@ export class Kanbn {
     }
 
     // Check that the task isn't already indexed
-    if (taskInIndex(index, taskId)) {
+    if (index.contains(taskId)) {
       throw new Error(`Task "${taskId}" is already in the index`)
     }
 
@@ -1546,11 +609,11 @@ export class Kanbn {
     const taskPath = getTaskPath(await this.getTaskFolderPath(), taskId)
 
     // Update task metadata dates
-    taskData = updateColumnLinkedCustomFields(index, taskData, columnName)
+    taskData = index.updateColumnLinkedCustomFields(taskData, columnName)
     await this.saveTask(taskPath, taskData)
 
     // Add the task to the column and save the index
-    index = addTaskToIndex(index, taskId, columnName)
+    index = index.addTask(taskId, columnName)
     await this.saveIndex(index)
     return taskId
   }
@@ -1568,7 +631,7 @@ export class Kanbn {
 
     // Get all tasks currently in index
     const index = await this.loadIndex()
-    return getTrackedTaskIds(index, columnName)
+    return index.getTrackedTaskIds(columnName)
   }
 
   /**
@@ -1583,7 +646,7 @@ export class Kanbn {
 
     // Get all tasks currently in index
     const index = await this.loadIndex()
-    const trackedTasks = getTrackedTaskIds(index)
+    const trackedTasks = index.getTrackedTaskIds()
 
     // Get all tasks in the tasks folder
     const files: string[] = await glob(`${await this.getTaskFolderPath()}/*.md`)
@@ -1608,13 +671,13 @@ export class Kanbn {
     taskId = removeFileExtension(taskId)
 
     // Make sure the task file exists
-    if (!(await exists(getTaskPath(await this.getTaskFolderPath(), taskId)))) {
+    if (!fs.existsSync(getTaskPath(await this.getTaskFolderPath(), taskId))) {
       throw new Error(`No task file found with id "${taskId}"`)
     }
 
     // Get index and make sure the task is indexed
     let index = await this.loadIndex()
-    if (!taskInIndex(index, taskId)) {
+    if (!index.contains(taskId)) {
       throw new Error(`Task "${taskId}" is not in the index`)
     }
 
@@ -1668,25 +731,25 @@ export class Kanbn {
     taskId = removeFileExtension(taskId)
 
     // Make sure the task file exists
-    if (!(await exists(getTaskPath(await this.getTaskFolderPath(), taskId)))) {
+    if (!fs.existsSync(getTaskPath(await this.getTaskFolderPath(), taskId))) {
       throw new Error(`No task file found with id "${taskId}"`)
     }
 
     // Get index and make sure the task is indexed
     let index = await this.loadIndex()
-    if (!taskInIndex(index, taskId)) {
+    if (!index.contains(taskId)) {
       throw new Error(`Task "${taskId}" is not in the index`)
     }
 
     // Make sure there isn't already a task with the new task id
     const newTaskId = utility.getTaskId(newTaskName)
     const newTaskPath = getTaskPath(await this.getTaskFolderPath(), newTaskId)
-    if (await exists(newTaskPath)) {
+    if (fs.existsSync(newTaskPath)) {
       throw new Error(`A task with id "${newTaskId}" already exists`)
     }
 
     // Check that a task with the new id isn't already indexed
-    if (taskInIndex(index, newTaskId)) {
+    if (index.contains(newTaskId)) {
       throw new Error(`A task with id "${newTaskId}" is already in the index`)
     }
 
@@ -1700,7 +763,7 @@ export class Kanbn {
     await fs.promises.rename(getTaskPath(await this.getTaskFolderPath(), taskId), newTaskPath)
 
     // Update the task id in the index
-    index = renameTaskInIndex(index, taskId, newTaskId)
+    index = index.renameTask(taskId, newTaskId)
     await this.saveIndex(index)
     return newTaskId
   }
@@ -1721,13 +784,13 @@ export class Kanbn {
     taskId = removeFileExtension(taskId)
 
     // Make sure the task file exists
-    if (!(await exists(getTaskPath(await this.getTaskFolderPath(), taskId)))) {
+    if (!fs.existsSync(getTaskPath(await this.getTaskFolderPath(), taskId))) {
       throw new Error(`No task file found with id "${taskId}"`)
     }
 
     // Get index and make sure the task is indexed
     let index = await this.loadIndex()
-    if (!taskInIndex(index, taskId)) {
+    if (!index.contains(taskId)) {
       throw new Error(`Task "${taskId}" is not in the index`)
     }
 
@@ -1741,11 +804,11 @@ export class Kanbn {
     taskData.metadata.updated = new Date()
 
     // Update task metadata dates
-    taskData = updateColumnLinkedCustomFields(index, taskData, columnName)
+    taskData = index.updateColumnLinkedCustomFields(taskData, columnName)
     await this.saveTask(getTaskPath(await this.getTaskFolderPath(), taskId), taskData)
 
     // If we're moving the task to a new position, calculate the absolute position
-    const currentColumnName = findTaskColumn(index, taskId)
+    const currentColumnName = index.findTaskColumn(taskId)
     const currentPosition = index.columns[currentColumnName ?? ""]?.indexOf(taskId)
     if (position) {
       if (relative) {
@@ -1755,8 +818,8 @@ export class Kanbn {
     }
 
     // Remove the task from its current column and add it to the new column
-    index = removeTaskFromIndex(index, taskId)
-    index = addTaskToIndex(index, taskId, columnName, position)
+    index = index.removeTask(taskId)
+    index = index.addTask(taskId, columnName, position)
     await this.saveIndex(index)
     return taskId
   }
@@ -1776,15 +839,15 @@ export class Kanbn {
 
     // Get index and make sure the task is indexed
     let index = await this.loadIndex()
-    if (!taskInIndex(index, taskId)) {
+    if (!index.contains(taskId)) {
       throw new Error(`Task "${taskId}" is not in the index`)
     }
 
     // Remove the task from whichever column it's in
-    index = removeTaskFromIndex(index, taskId)
+    index = index.removeTask(taskId)
 
     // Optionally remove the task file as well
-    if (removeFile && (await exists(getTaskPath(await this.getTaskFolderPath(), taskId)))) {
+    if (removeFile && fs.existsSync(getTaskPath(await this.getTaskFolderPath(), taskId))) {
       await fs.promises.unlink(getTaskPath(await this.getTaskFolderPath(), taskId))
     }
     await this.saveIndex(index)
@@ -1805,7 +868,7 @@ export class Kanbn {
 
     // Load all tracked tasks and filter the results
     const index = await this.loadIndex()
-    const tasks = filterTasks(index, await this.loadAllTrackedTasks(index), filters)
+    const tasks = index.filterTasks(await this.loadAllTrackedTasks(index), filters)
 
     // Return resulting task ids or the full tasks
     return tasks.map((task) => {
@@ -1865,7 +928,7 @@ export class Kanbn {
         .filter((c) => index.options.completedColumns.indexOf(c[0]) > -1)
         .reduce((a, c) => a + c[1].length, 0)
     }
-    let dueTasks = null
+    let dueTasks: any = null
     let resultTotalWorkload: number = 0
     let resultTotalRemainingWorkload: number = 0
     let resultColumnWorkloads: null | Record<string, any> = null
@@ -1963,7 +1026,7 @@ export class Kanbn {
             workload: task.workload,
             progress: task.progress,
             remainingWorkload: task.remainingWorkload,
-            completed: taskCompleted(index, task)
+            completed: index.taskCompleted(task)
           }
         ])
       )
@@ -2118,10 +1181,10 @@ export class Kanbn {
     if (!(await this.initialised())) {
       throw new Error('Not initialised in this folder')
     }
-    const errors = []
+    const errors: any[] = []
 
     // Load & parse index
-    let index = null
+    let index: any = null
     try {
       index = await this.loadIndex()
 
@@ -2142,7 +1205,7 @@ export class Kanbn {
     }
 
     // Load & parse tasks
-    const trackedTasks = index !== null ? getTrackedTaskIds(index) : []
+    const trackedTasks = index !== null ? index.getTrackedTaskIds() : []
     for (const taskId of trackedTasks) {
       try {
         const task = await this.loadTask(taskId)
@@ -2194,7 +1257,7 @@ export class Kanbn {
         delete index.options.columnSorting[columnName]
       }
       const tasks = await this.loadAllTrackedTasks(index, columnName)
-      index = sortColumnInIndex(index, tasks, columnName, sorters)
+      index = index.sortColumn(tasks, columnName, sorters)
     }
     await this.saveIndex(index)
   }
@@ -2255,25 +1318,25 @@ export class Kanbn {
           started:
             'started' in task.metadata
               ? task.metadata.started
-              : 'startedColumns' in index.options && index.options.startedColumns.indexOf(task.column) !== -1
+              : 'startedColumns' in index.options && index.options.startedColumns.indexOf(task.column ?? '') !== -1
                 ? created
-                : false,
+                : null,
           completed:
             'completed' in task.metadata
               ? task.metadata.completed
-              : 'completedColumns' in index.options && index.options.completedColumns.indexOf(task.column) !== -1
+              : 'completedColumns' in index.options && index.options.completedColumns.indexOf(task.column ?? '') !== -1
                 ? created
-                : false,
-          progress: taskProgress(index, task),
+                : null,
+          progress: index.taskProgress(task),
           assigned: 'assigned' in task.metadata ? task.metadata.assigned : null,
-          workload: taskWorkload(index, task),
-          column: findTaskColumn(index, task.id)
+          workload: index.taskWorkload(task),
+          column: index.findTaskColumn(task.id)
         }
       })
       .filter(
         (task) =>
           (assigned === null || task.assigned === assigned) &&
-          (columns === null || columns.indexOf(task.column) !== -1)
+          (columns === null || columns.indexOf(task?.column ?? '') !== -1)
       )
 
     // Get sprints and dates to plot from arguments
@@ -2301,14 +1364,14 @@ export class Kanbn {
           from: new Date(
             Math.min(
               ...tasks
-                .map((t) =>
+                .map((t: any) =>
                   [
                     'created' in t.metadata && t.metadata.created,
                     'started' in t.metadata && t.metadata.started,
-                    'completed' in t.metadata && (t.metadata.completed || new Date(8640000000000000))
-                  ].filter((d) => d)
+                    'completed' in t.metadata && (t.metadata.completed ?? new Date(8640000000000000))
+                  ].filter((d) => d !== false && d !== null)
                 )
-                .flat()
+                .flat().map((d: Date) => d.getTime())
             )
           ),
           to: new Date(),
@@ -2322,7 +1385,7 @@ export class Kanbn {
           throw new Error('No sprints defined')
         } else {
           for (const sprint of sprints) {
-            let sprintIndex = null
+            let sprintIndex: number | null = null
 
             // Select sprint by number (1-based index)
             if (typeof sprint === 'number') {
@@ -2390,7 +1453,7 @@ export class Kanbn {
         if (task.created) {
           task.created = normaliseDate(task.created, normalise!)
         }
-        if (task.started) {
+        if (task.started !== null) {
           task.started = normaliseDate(task.started, normalise!)
         }
         if (task.completed) {
@@ -2404,9 +1467,9 @@ export class Kanbn {
       s.dataPoints = [
         {
           x: s.from,
-          y: getWorkloadAtDate(tasks, s.from),
-          count: countActiveTasksAtDate(tasks, s.from),
-          tasks: getTaskEventsAtDate(tasks, s.from)
+          y: getWorkloadAtDate((tasks as any), s.from),
+          count: countActiveTasksAtDate((tasks as any), s.from),
+          tasks: getTaskEventsAtDate((tasks as any), s.from)
         },
         ...tasks
           .filter((task) => {
@@ -2428,18 +1491,18 @@ export class Kanbn {
             task.completed
           ])
           .flat()
-          .filter((d) => d)
-          .map((x) => ({
+          .filter((d: Date | null) => d !== null)
+          .map((x: any) => ({
             x,
-            y: getWorkloadAtDate(tasks, x),
-            count: countActiveTasksAtDate(tasks, x),
-            tasks: getTaskEventsAtDate(tasks, x)
+            y: getWorkloadAtDate((tasks as any), x),
+            count: countActiveTasksAtDate((tasks as any), x),
+            tasks: getTaskEventsAtDate((tasks as any), x)
           })),
         {
           x: s.to,
-          y: getWorkloadAtDate(tasks, s.to),
-          count: countActiveTasksAtDate(tasks, s.to),
-          tasks: getTaskEventsAtDate(tasks, s.to)
+          y: getWorkloadAtDate((tasks as any), s.to),
+          count: countActiveTasksAtDate((tasks as any), s.to),
+          tasks: getTaskEventsAtDate((tasks as any), s.to)
         }
       ].sort((a, b) => a.x.getTime() - b.x.getTime())
     })
@@ -2461,13 +1524,13 @@ export class Kanbn {
     taskId = removeFileExtension(taskId)
 
     // Make sure the task file exists
-    if (!(await exists(getTaskPath(await this.getTaskFolderPath(), taskId)))) {
+    if (!fs.existsSync(getTaskPath(await this.getTaskFolderPath(), taskId))) {
       throw new Error(`No task file found with id "${taskId}"`)
     }
 
     // Get index and make sure the task is indexed
     const index = await this.loadIndex()
-    if (!taskInIndex(index, taskId)) {
+    if (!index.contains(taskId)) {
       throw new Error(`Task "${taskId}" is not in the index`)
     }
 
@@ -2502,13 +1565,13 @@ export class Kanbn {
 
     // Make sure the archive folder exists
     const archiveFolder = await this.getArchiveFolderPath()
-    if (!(await exists(archiveFolder))) {
+    if (!fs.existsSync(archiveFolder)) {
       throw new Error("Archive folder doesn't exist")
     }
 
     // Get a list of archived task files
     const files = await glob(`${archiveFolder}/*.md`)
-    return [...new Set(files.map((task: Task) => path.parse(task).name))]
+    return [...new Set(files.map((task: any) => path.parse(task).name))]
   }
 
   /**
@@ -2524,31 +1587,31 @@ export class Kanbn {
     taskId = removeFileExtension(taskId)
 
     // Make sure the task file exists
-    if (!(await exists(getTaskPath(await this.getTaskFolderPath(), taskId)))) {
+    if (!(await fs.existsSync(getTaskPath(await this.getTaskFolderPath(), taskId)))) {
       throw new Error(`No task file found with id "${taskId}"`)
     }
 
     // Get index and make sure the task is indexed
     const index = await this.loadIndex()
-    if (!taskInIndex(index, taskId)) {
+    if (!index.contains(taskId)) {
       throw new Error(`Task "${taskId}" is not in the index`)
     }
 
     // Make sure there isn't already an archived task with the same id
     const archiveFolder = await this.getArchiveFolderPath()
     const archivedTaskPath = getTaskPath(archiveFolder, taskId)
-    if (await exists(archivedTaskPath)) {
+    if (fs.existsSync(archivedTaskPath)) {
       throw new Error(`An archived task with id "${taskId}" already exists`)
     }
 
     // Create archive folder if it doesn't already exist
-    if (!(await exists(archiveFolder))) {
+    if (!fs.existsSync(archiveFolder)) {
       await fs.promises.mkdir(archiveFolder, { recursive: true })
     }
 
     // Save the column name in the task's metadata
     let taskData = await this.loadTask(taskId)
-    taskData.metadata.column = findTaskColumn(index, taskId)
+    taskData.metadata.column = index.findTaskColumn(taskId)
 
     // Save the task inside the archive folder
     await this.saveTask(archivedTaskPath, taskData)
@@ -2577,23 +1640,23 @@ export class Kanbn {
     const taskPath = getTaskPath(await this.getTaskFolderPath(), taskId)
 
     // Make sure the archive folder exists
-    if (!(await exists(archiveFolder))) {
+    if (!fs.existsSync(archiveFolder)) {
       throw new Error("Archive folder doesn't exist")
     }
 
     // Make sure the task file exists in the archive
-    if (!(await exists(archivedTaskPath))) {
+    if (!fs.existsSync(archivedTaskPath)) {
       throw new Error(`No archived task found with id "${taskId}"`)
     }
 
     // Get index and make sure there isn't already an indexed task with the same id
     let index = await this.loadIndex()
-    if (taskInIndex(index, taskId)) {
+    if (index.contains(taskId)) {
       throw new Error(`There is already an indexed task with id "${taskId}"`)
     }
 
     // Check if there is already a task with the same id
-    if (await exists(taskPath)) {
+    if (fs.existsSync(taskPath)) {
       throw new Error(`There is already an untracked task with id "${taskId}"`)
     }
 
@@ -2605,15 +1668,15 @@ export class Kanbn {
 
     // Load the task from the archive
     let taskData = await this.loadArchivedTask(taskId)
-    const actualColumnName = columnName || taskData.metadata.columns || columns[0]
-    taskData.metadata.column = undefined
+    const actualColumnName = columnName ?? taskData.metadata.columns[0] ?? columns[0]
+    taskData.metadata.column = null
 
     // Update task metadata dates and save task
-    taskData = updateColumnLinkedCustomFields(index, taskData, actualColumnName)
+    taskData = index.updateColumnLinkedCustomFields(taskData, actualColumnName)
     await this.saveTask(taskPath, taskData)
 
     // Add the task to the column and save the index
-    index = addTaskToIndex(index, taskId, actualColumnName)
+    index = index.addTask(taskId, actualColumnName)
     await this.saveIndex(index)
 
     // Delete the archived task file
@@ -2633,5 +1696,3 @@ export class Kanbn {
     rimraf.sync(await this.getMainFolder())
   }
 };
-
-module.exports.Kanbn = Kanbn

@@ -12,7 +12,7 @@ const tags: Record<Tag1, Tag2> = {
  * @param {Error|string} error
  * @param {boolean} dontExit
  */
-const error = (error: Error|string, dontExit: boolean = false) => {
+export const error = (error: Error|string, dontExit: boolean = false) => {
   const message = error instanceof Error
     ? (process.env.DEBUG === 'true' ? error : replaceTags(error.message))
     : replaceTags(error)
@@ -43,7 +43,7 @@ const paramCase = (s: string) => {
  * @param {string} name The task name
  * @return {string} The task id
  */
-const getTaskId = (name: string) => {
+export const getTaskId = (name: string) => {
   return paramCase(name)
 }
 
@@ -53,9 +53,9 @@ const getTaskId = (name: string) => {
  * @param {string|string[]} arg An argument that might be a string or an array of strings
  * @return {string} The argument value as a string
  */
-const strArg = (arg: string | string[], all = false) => {
+export const strArg = (arg: string | string[], all = false): string => {
   if (Array.isArray(arg)) {
-    return all ? arg.join(',') : arg.pop()
+    return all ? arg.join(',') : arg.pop() ?? ''
   }
   return arg
 }
@@ -65,7 +65,7 @@ const strArg = (arg: string | string[], all = false) => {
  * @param {string|string[]} arg An argument that might be a string or an array of strings
  * @return {string[]} The argument value as an array
  */
-const arrayArg = (arg: string | string[]): string[] => {
+export const arrayArg = <ArrayType>(arg: ArrayType | ArrayType[]): ArrayType[] => {
   if (Array.isArray(arg)) {
     return arg
   }
@@ -76,7 +76,7 @@ const arrayArg = (arg: string | string[]): string[] => {
  * Remove escape characters ('/' and '\') from the beginning of a string
  * @param {string} s The string to trim
  */
-const trimLeftEscapeCharacters = (s: string) => {
+export const trimLeftEscapeCharacters = (s: string) => {
   return s.replace(/^[\\\/]+/, '')
 }
 
@@ -86,7 +86,7 @@ const trimLeftEscapeCharacters = (s: string) => {
  * @param {Date} b
  * @return {boolean} True if the dates are the same
  */
-const compareDates = (a: Date, b: Date) => {
+export const compareDates = (a: Date, b: Date) => {
   const aDate = new Date(a); const bDate = new Date(b)
   aDate.setHours(0, 0, 0, 0)
   bDate.setHours(0, 0, 0, 0)
@@ -99,7 +99,7 @@ const compareDates = (a: Date, b: Date) => {
  * @param {string} type
  * @return {string|number}
  */
-const coerceUndefined = (a: any, type: 'string' | 'number') => {
+export const coerceUndefined = (a: any, type: any) => {
   if (a === undefined) {
     switch (type) {
       case 'string':
@@ -160,5 +160,5 @@ export const replaceTags = (s: string) => {
  * @param {any[]} b
  * @return {any[]}
  */
-export const zip = (a: any[], b: any[]) => a.map((k, i) => [k, b[i]])
+export const zip = <T1,T2>(a: T1[], b: T2[]): [T1,T2][] => a.map((k, i) => [k, b[i]])
 

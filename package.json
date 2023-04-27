@@ -49,11 +49,12 @@
     "marked": "^1.2.7",
     "marked-terminal": "^4.1.1",
     "minimist": "^1.2.5",
-    "rimraf": "^3.0.2",
+    "rimraf": "^5.0.0",
     "terminal-kit": "^1.44.0",
     "yamljs": "^0.3.0"
   },
   "devDependencies": {
+    "@types/humanize-duration": "^3.27.1",
     "@types/typescript": "^2.0.0",
     "@typescript-eslint/eslint-plugin": "^5.57.1",
     "capture-console": "^1.0.1",
