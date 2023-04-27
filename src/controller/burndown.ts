@@ -1,5 +1,6 @@
-const kanbn = require('../main')
-const utility = require('../utility')
+import { Kanbn } from '../model/Kanbn'
+const kanbn = new Kanbn()
+import * as utility from '../utility'
 const asciichart = require('asciichart')
 const term = require('terminal-kit').terminal
 const chrono = require('chrono-node')
@@ -14,7 +15,7 @@ module.exports = async args => {
   const index = await kanbn.getIndex()
 
   // Get sprint numbers or names
-  let sprints = null
+  let sprints: any = null
   if (args.sprint) {
     sprints = utility.arrayArg(args.sprint).map(s => {
       const sprintNumber = parseInt(s)
@@ -23,7 +24,7 @@ module.exports = async args => {
   }
 
   // Get dates
-  let dates = null
+  let dates: any = null
   if (args.date) {
     dates = utility.arrayArg(args.date)
     if (dates.length) {
@@ -39,19 +40,19 @@ module.exports = async args => {
   }
 
   // Get assigned
-  let assigned = null
+  let assigned: any = null
   if (args.assigned) {
     assigned = utility.strArg(args.assigned)
   }
 
   // Get columns
-  let columns = null
+  let columns: any = null
   if (args.column) {
     columns = utility.arrayArg(args.column)
   }
 
   // Get normalisation mode
-  let normalise = null
+  let normalise: any = null
   if (args.normalise) {
     normalise = args.normalise.toLowerCase()
     if (!['days', 'hours', 'minutes', 'seconds'].includes(normalise)) {
@@ -71,9 +72,9 @@ module.exports = async args => {
         const PADDING = '     '
         const width = term.width - (PADDING.length + 1)
 
-        const plots = []
+        const plots: any[] = []
         for (const s of data.series) {
-          const plot = []; const delta = Math.floor((s.to.getTime() - s.from.getTime()) / width)
+          const plot: any[] = []; const delta = Math.floor((s.to.getTime() - s.from.getTime()) / width)
           for (let i = 0; i < width; i++) {
             plot.push((s.dataPoints.find(d => d.x >= new Date(s.from.getTime() + i * delta)) || s.dataPoints[0]).y)
           }

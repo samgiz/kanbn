@@ -1,5 +1,6 @@
-const kanbn = new (require('../main').Kanbn)()
-const utility = require('../utility')
+import { Kanbn } from '../model/Kanbn'
+const kanbn = new Kanbn()
+import * as utility from '../utility'
 const inquirer = require('inquirer')
 
 inquirer.registerPrompt('recursive', require('inquirer-recursive'))
@@ -11,7 +12,7 @@ inquirer.registerPrompt('recursive', require('inquirer-recursive'))
  * @return {Promise<any>}
  */
 async function interactive (options, initialised) {
-  const columnNames = []
+  const columnNames: string[] = []
   return await inquirer
     .prompt([
       {
@@ -89,7 +90,7 @@ async function initialise (options, initialised) {
 }
 
 module.exports = async args => {
-  const options = {}
+  const options: any = {}
 
   // If this folder is already initialised, set the default name and description using the current values
   const initialised = await kanbn.initialised()

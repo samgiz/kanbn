@@ -1,8 +1,8 @@
 const minimist = require('minimist')
 const path = require('path')
-const utility = require('./src/utility')
+import * as utility from './src/utility'
 
-export async function route () {
+export default async function () {
   require('dotenv').config({ path: path.join(__dirname, '.env') })
 
   // Get the command

@@ -1,6 +1,8 @@
-const kanbn = require('../main')
-const utility = require('../utility')
-const board = require('../board')
+import { Kanbn } from '../model/Kanbn'
+const kanbn = new Kanbn()
+
+import * as utility from '../utility'
+import * as board from '../board'
 
 module.exports = async args => {
   // Make sure kanbn has been initialised

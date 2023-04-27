@@ -1,5 +1,6 @@
-const kanbn = require('../main')
-const utility = require('../utility')
+import {Kanbn} from '../model/Kanbn'
+const kanbn = new Kanbn()
+import * as utility from '../utility'
 const inquirer = require('inquirer')
 
 inquirer.registerPrompt('selectLine', require('inquirer-select-line'))
@@ -101,7 +102,7 @@ module.exports = async args => {
   }
 
   // Re-use sprint option for position
-  const currentPosition = index.columns[currentColumnName].indexOf(taskId)
+  const currentPosition = index.columns[currentColumnName as any].indexOf(taskId)
   let newPosition = args.position || args.p
   if (newPosition) {
     newPosition = parseInt(utility.trimLeftEscapeCharacters(newPosition))

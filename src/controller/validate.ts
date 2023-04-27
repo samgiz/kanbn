@@ -1,5 +1,5 @@
 const yaml = require('yamljs')
-import {Kanbn} from '../main'
+import {Kanbn} from '../model/Kanbn'
 import * as utility from '../utility'
 
 module.exports = async (args: any) => {

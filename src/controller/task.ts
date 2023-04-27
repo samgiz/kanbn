@@ -1,6 +1,6 @@
-import {Kanbn} from '../main'
-const utility = require('../utility')
-const parseTask = require('../parse-task')
+import {Kanbn} from '../model/Kanbn'
+import * as utility from '../utility'
+import * as parseTask from '../parse-task'
 const marked = require('marked')
 const MarkedTerminalRenderer = require('marked-terminal')
 
@@ -43,7 +43,7 @@ module.exports = async (args: any) => {
   // Make sure the task exists
   try {
     await new Kanbn().taskExists(taskId)
-  } catch (error) {
+  } catch (error: any) {
     utility.error(error)
     return
   }

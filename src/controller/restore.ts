@@ -1,5 +1,7 @@
-const kanbn = require('../main')
-const utility = require('../utility')
+import { Kanbn } from '../model/Kanbn'
+const kanbn = new Kanbn()
+
+import * as utility from '../utility'
 
 /**
  * Restore a task from the archive
@@ -46,9 +48,9 @@ module.exports = async args => {
   }
 
   // Get column name if specified
-  let columnName = null
+  let columnName: null | string = null
   if (args.column) {
-    columnName = utility.strArg(args.column)
+    columnName = (utility.strArg(args.column) as string)
     if (columnNames.indexOf(columnName) === -1) {
       utility.error(`Column "${columnName}" doesn't exist`)
       return

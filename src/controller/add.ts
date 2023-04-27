@@ -1,9 +1,10 @@
-const kanbn = require('../main')
-const utility = require('../utility')
+import {Kanbn} from '../model/Kanbn'
+import * as utility from '../utility'
 const inquirer = require('inquirer')
 const fuzzy = require('fuzzy')
 const chrono = require('chrono-node')
 const getGitUsername = require('git-user-name')
+const kanbn = new Kanbn()
 
 inquirer.registerPrompt('datepicker', require('inquirer-datepicker'))
 inquirer.registerPrompt('recursive', require('inquirer-recursive'))
@@ -196,7 +197,7 @@ async function interactiveAddUntrackedTasks (untrackedTasks, columnName, columnN
  * @param {string} columnName
  */
 function createTask (taskData, columnName) {
-  kanbn
+  new Kanbn()
     .createTask(taskData, columnName)
     .then(taskId => {
       console.log(`Created task "${taskId}" in column "${columnName}"`)
@@ -214,7 +215,7 @@ function createTask (taskData, columnName) {
 async function addUntrackedTasks (untrackedTasks, columnName) {
   for (const untrackedTask of untrackedTasks) {
     try {
-      await kanbn.addUntrackedTaskToIndex(untrackedTask, columnName)
+      await new Kanbn().addUntrackedTaskToIndex(untrackedTask, columnName)
     } catch (error) {
       utility.error(error)
       return
@@ -227,7 +228,7 @@ async function addUntrackedTasks (untrackedTasks, columnName) {
 
 module.exports = async args => {
   // Make sure kanbn has been initialised
-  if (!await kanbn.initialised()) {
+  if (!await new Kanbn().initialised()) {
     utility.error('Kanbn has not been initialised in this folder\nTry running: {b}kanbn init{b}')
     return
   }
@@ -235,7 +236,7 @@ module.exports = async args => {
   // Get the index and make sure it has some columns
   let index
   try {
-    index = await kanbn.getIndex()
+    index = await new Kanbn().getIndex()
   } catch (error) {
     utility.error(error)
     return
@@ -258,7 +259,7 @@ module.exports = async args => {
 
   // Add untracked file(s)
   if (args.untracked) {
-    const untrackedTasks = []
+    const untrackedTasks: any[] = []
     if (Array.isArray(args.untracked)) {
       untrackedTasks.push(...args.untracked)
     } else if (typeof args.untracked === 'string') {
@@ -295,7 +296,7 @@ module.exports = async args => {
   }
 
   // Otherwise, create a task from arguments or interactively
-  const taskData = {
+  const taskData: any = {
     metadata: {}
   }
 

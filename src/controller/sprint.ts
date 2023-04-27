@@ -1,6 +1,7 @@
-const kanbn = require('../main')
-const utility = require('../utility')
+import { Kanbn } from '../model/Kanbn'
+import * as utility from '../utility'
 const inquirer = require('inquirer')
+const kanbn = new Kanbn()
 
 /**
  * Start a new sprint interactively
@@ -8,7 +9,7 @@ const inquirer = require('inquirer')
  * @param {?string} [description=null] The sprint description
  * @return {Promise<any>}
  */
-async function interactive (name = null, description = null) {
+async function interactive (name: string | null = null, description: string | null = null) {
   return await inquirer.prompt([
     {
       type: 'input',

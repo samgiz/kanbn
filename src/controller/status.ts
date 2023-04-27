@@ -1,5 +1,7 @@
-const kanbn = require('../main')
-const utility = require('../utility')
+import { Kanbn } from '../model/Kanbn'
+const kanbn = new Kanbn()
+
+import * as utility from '../utility'
 const chrono = require('chrono-node')
 const yaml = require('yamljs')
 
@@ -11,7 +13,7 @@ module.exports = async args => {
   }
 
   // Get sprint number or name
-  let sprint = null
+  let sprint: any = null
   if (args.sprint) {
     sprint = utility.strArg(args.sprint)
     const sprintNumber = parseInt(sprint)
@@ -21,7 +23,7 @@ module.exports = async args => {
   }
 
   // Get filter dates
-  let dates = null
+  let dates: any = null
   if (args.date) {
     dates = utility.arrayArg(args.date)
     if (dates.length) {
@@ -45,7 +47,7 @@ module.exports = async args => {
       sprint,
       dates
     )
-    .then(output => {
+    .then((output: any) => {
       if (args.quiet && args.untracked && !args.json) {
         console.log(
           output.length

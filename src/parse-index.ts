@@ -2,7 +2,7 @@ const yaml = require('yamljs')
 const fm = require('front-matter')
 const marked = require('marked')
 const validate = require('jsonschema').validate
-const parseMarkdown = require('./parse-markdown')
+import { parseMarkdown } from './parse-markdown'
 import { IndexOptions, Index } from "./model/Index"
 
 /**

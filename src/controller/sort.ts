@@ -1,5 +1,6 @@
-const kanbn = require('../main')
-const utility = require('../utility')
+import { Kanbn } from '../model/Kanbn'
+const kanbn = new Kanbn()
+import * as utility from '../utility'
 const inquirer = require('inquirer')
 
 inquirer.registerPrompt('recursive', require('inquirer-recursive'))
@@ -334,8 +335,8 @@ module.exports = async (args, argv) => {
   }
 
   // Create a list of fields to sort by
-  const sorters = []
-  let currentSorter = null; let expectingFilter = false
+  const sorters: any[] = []
+  let currentSorter: any = null; let expectingFilter = false
   for (const arg of argv) {
     if (skipOptions.indexOf(arg) !== -1) {
       continue

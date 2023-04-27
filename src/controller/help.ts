@@ -1,6 +1,6 @@
 const fs = require('fs')
 const path = require('path')
-const utility = require('../utility')
+import * as utility from '../utility'
 
 module.exports = async (args, argv, routeId) => {
   const helpRoute = require(path.join(__dirname, '../../routes', `${routeId}.json`))

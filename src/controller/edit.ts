@@ -1,5 +1,6 @@
-const kanbn = require('../main')
-const utility = require('../utility')
+import { Kanbn } from "../model/Kanbn"
+const kanbn = new Kanbn()
+import * as utility from "../utility"
 const inquirer = require('inquirer')
 const fuzzy = require('fuzzy')
 const chrono = require('chrono-node')

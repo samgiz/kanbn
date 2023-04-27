@@ -1,5 +1,6 @@
-const kanbn = require('../main')
-const utility = require('../utility')
+import { Kanbn } from '../model/Kanbn'
+const kanbn = new Kanbn()
+import * as utility from '../utility'
 const inquirer = require('inquirer')
 const chrono = require('chrono-node')
 const yaml = require('yamljs')
@@ -460,7 +461,7 @@ module.exports = async args => {
             for (const filter of answers.filters) {
               addFilterValue(
                 filters,
-                searchFields.find(s => s.name === filter.type).field,
+                searchFields.find(s => s.name === filter.type)?.field,
                 filter.value
               )
             }
