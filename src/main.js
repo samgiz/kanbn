@@ -70,8 +70,8 @@ function getTrackedTaskIds(index, columnName = null) {
     columnName
       ? index.columns[columnName]
       : Object.keys(index.columns)
-          .map((columnName) => index.columns[columnName])
-          .flat()
+        .map((columnName) => index.columns[columnName])
+        .flat()
   );
 }
 
@@ -708,7 +708,7 @@ function normaliseDate(date, resolution = 'minutes') {
   const result = new Date(date.getTime());
   switch (resolution) {
     case 'days':
-      result.setHours(0);
+      result.setUTCHours(0);
     case 'hours':
       result.setMinutes(0);
     case 'minutes':
@@ -786,12 +786,12 @@ class Kanbn {
   ROOT = process.cwd();
   CONFIG_YAML = path.join(this.ROOT, "kanbn.yml");
   CONFIG_JSON = path.join(this.ROOT, "kanbn.json");
-  
+
   // Memoize config
   configMemo = null;
 
   constructor(root = null) {
-    if(root) {
+    if (root) {
       this.ROOT = root
       this.CONFIG_YAML = path.join(this.ROOT, "kanbn.yml");
       this.CONFIG_JSON = path.join(this.ROOT, "kanbn.json");
@@ -1808,9 +1808,9 @@ class Kanbn {
         result.period = {};
         if (dates.length === 1) {
           periodStart = new Date(+dates[0]);
-          periodStart.setHours(0, 0, 0, 0);
+          periodStart.setUTCHours(0, 0, 0, 0);
           periodEnd = new Date(+dates[0]);
-          periodEnd.setHours(23, 59, 59, 999);
+          periodEnd.setUTCHours(23, 59, 59, 999);
           result.period.start = periodStart;
           result.period.end = periodEnd;
         } else {
@@ -1998,14 +1998,14 @@ class Kanbn {
             "started" in task.metadata
               ? task.metadata.started
               : "startedColumns" in index.options && index.options.startedColumns.indexOf(task.column) !== -1
-              ? created
-              : false,
+                ? created
+                : false,
           completed:
             "completed" in task.metadata
               ? task.metadata.completed
               : "completedColumns" in index.options && index.options.completedColumns.indexOf(task.column) !== -1
-              ? created
-              : false,
+                ? created
+                : false,
           progress: taskProgress(index, task),
           assigned: "assigned" in task.metadata ? task.metadata.assigned : null,
           workload: taskWorkload(index, task),
@@ -2103,7 +2103,7 @@ class Kanbn {
         normalise = 'days';
       } else if (delta >= DAY) {
         normalise = 'hours';
-      } else if (delta >= HOUR ) {
+      } else if (delta >= HOUR) {
         normalise = 'minutes';
       } else {
         normalise = 'seconds';

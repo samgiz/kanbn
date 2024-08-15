@@ -1,5 +1,5 @@
 const mockFileSystem = require('mock-fs');
-const kanbn = require('../../src/main');
+const kanbn_module = require('../../src/main'); const kanbn = new kanbn_module.Kanbn();;
 const fixtures = require('../fixtures');
 
 QUnit.module('search tests', {
@@ -150,17 +150,17 @@ QUnit.test('Search with string filter', async assert => {
   assert.equal(result[0].id, 'test-task');
 
   // Search using partial match
-  result = await kanbn.search({ id: 'task'});
+  result = await kanbn.search({ id: 'task' });
   assert.equal(result.length, 3);
   assert.deepEqual(result.map(r => r.id), ['test-task', 'task-two', 'task-three']);
 
   // Search using array match
-  result = await kanbn.search({ id: ['two', 'three']});
+  result = await kanbn.search({ id: ['two', 'three'] });
   assert.equal(result.length, 2);
   assert.deepEqual(result.map(r => r.id), ['task-two', 'task-three']);
 
   // Search using regex
-  result = await kanbn.search({ id: '^task-(two|three)?'});
+  result = await kanbn.search({ id: '^task-(two|three)?' });
   assert.equal(result.length, 2);
   assert.deepEqual(result.map(r => r.id), ['task-two', 'task-three']);
 });
@@ -214,10 +214,12 @@ QUnit.test('Search with date filter', async assert => {
   assert.equal(result[0].id, 'task-2');
 
   // Search using array of dates
-  result = await kanbn.search({ completed: [
-    new Date('02 January 2020 00:00:00 GMT'),
-    new Date('06 January 2020 00:00:00 GMT')
-  ]});
+  result = await kanbn.search({
+    completed: [
+      new Date('02 January 2020 00:00:00 GMT'),
+      new Date('06 January 2020 00:00:00 GMT')
+    ]
+  });
   assert.equal(result.length, 2);
   assert.deepEqual(result.map(r => r.id), ['task-2', 'task-3']);
 });
@@ -257,17 +259,17 @@ QUnit.test('Search with string filter on optional metadata property', async asse
   assert.equal(result[0].id, 'task-1');
 
   // Search using partial match
-  result = await kanbn.search({ assigned: 'User'});
+  result = await kanbn.search({ assigned: 'User' });
   assert.equal(result.length, 2);
   assert.deepEqual(result.map(r => r.id), ['task-1', 'task-2']);
 
   // Search using array match
-  result = await kanbn.search({ assigned: ['User 1', 'User 2']});
+  result = await kanbn.search({ assigned: ['User 1', 'User 2'] });
   assert.equal(result.length, 2);
   assert.deepEqual(result.map(r => r.id), ['task-1', 'task-2']);
 
   // Search using regex
-  result = await kanbn.search({ assigned: '^User [12]'});
+  result = await kanbn.search({ assigned: '^User [12]' });
   assert.equal(result.length, 2);
   assert.deepEqual(result.map(r => r.id), ['task-1', 'task-2']);
 });
@@ -313,17 +315,17 @@ QUnit.test('Search with string filter on concatenated property', async assert =>
   assert.equal(result[0].id, 'task-1');
 
   // Search using partial match for completed sub-task
-  result = await kanbn.search({ 'sub-task': '\\[x\\]'});
+  result = await kanbn.search({ 'sub-task': '\\[x\\]' });
   assert.equal(result.length, 1);
   assert.equal(result[0].id, 'task-1');
 
   // Search using partial match for uncompleted sub-task
-  result = await kanbn.search({ 'sub-task': '\\[ \\]'});
+  result = await kanbn.search({ 'sub-task': '\\[ \\]' });
   assert.equal(result.length, 1);
   assert.equal(result[0].id, 'task-2');
 
   // Search using partial match
-  result = await kanbn.search({ 'sub-task': 'Sub-task'});
+  result = await kanbn.search({ 'sub-task': 'Sub-task' });
   assert.equal(result.length, 2);
   assert.deepEqual(result.map(r => r.id), ['task-1', 'task-2']);
 });
@@ -586,10 +588,12 @@ QUnit.test('Search with boolean filter on custom field', async assert => {
   assert.equal(result[0].id, 'task-1');
 
   // Search using array of dates
-  result = await kanbn.search({ test: [
-    new Date('02 January 2020 00:00:00 GMT'),
-    new Date('06 January 2020 00:00:00 GMT')
-  ]});
+  result = await kanbn.search({
+    test: [
+      new Date('02 January 2020 00:00:00 GMT'),
+      new Date('06 January 2020 00:00:00 GMT')
+    ]
+  });
   assert.equal(result.length, 2);
   assert.deepEqual(result.map(r => r.id), ['task-2', 'task-3']);
 });

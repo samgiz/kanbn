@@ -1,5 +1,5 @@
 const mockFileSystem = require('mock-fs');
-const kanbn = require('../../src/main');
+const kanbn_module = require('../../src/main'); const kanbn = new kanbn_module.Kanbn();;
 const fixtures = require('../fixtures');
 
 QUnit.module('sort tests', {
