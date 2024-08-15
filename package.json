@@ -1,7 +1,7 @@
 {
-  "name": "@basementuniverse/kanbn",
-  "version": "0.10.0",
-  "description": "A CLI Kanban application",
+  "name": "@samgiz/kanbn",
+  "version": "0.10.1",
+  "description": "A kanban board library",
   "main": "index.js",
   "scripts": {
     "test": "KANBN_ENV=test qunit ./test/**/*.test.js"
@@ -11,10 +11,17 @@
     "kanbn": "bin/kanbn"
   },
   "author": "Gordon Larrigan <gordonlarrigan@gmail.com> (https://gordonlarrigan.com)",
+  "contributors": [
+    {
+      "name": "Zigmas Bitinas (samgiz)",
+      "email": "zigmbit@gmail.com",
+      "url": "https://samgiz.com"
+    }
+  ],
   "homepage": "",
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/basementuniverse/kanbn.git"
+    "url": "git+https://github.com/samgiz/kanbn.git"
   },
   "engines": {
     "node": ">=12.0.0"
