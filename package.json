@@ -38,13 +38,11 @@
     "jsonschema": "^1.4.0",
     "marked": "^14.0.0",
     "rimraf": "^3.0.2",
-    "terminal-kit": "^3.1.1",
     "yamljs": "^0.3.0"
   },
   "devDependencies": {
     "@types/typescript": "^2.0.0",
     "faker": "^5.1.0",
-    "mock-argv": "^1.1.10",
     "mock-fs": "^4.13.0",
     "mock-require": "^3.0.3",
     "mock-stdin": "^1.0.0",
